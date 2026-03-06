@@ -167,6 +167,7 @@
     "minimatch": "^3.1.5",
     "minimist": "^1.2.8",
     "mkdirp": "^1.0.4",
+    "mongodb-memory-server": "^8.16.1",
     "mongoose": "^9.2.4",
     "morgan": "^1.10.1",
     "ms": "^2.0.0",
@@ -268,6 +269,8 @@
     "yocto-queue": "^0.1.0"
   },
   "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

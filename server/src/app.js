@@ -21,8 +21,7 @@ const notificationRoutes = require('./routes/notifications');
 const recurringRoutes = require('./routes/recurring');
 
 // Import middleware
-const errorHandler = require('./middleware/errorHandler');
-const { notFound } = require('./middleware/errorHandler');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -58,12 +57,22 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/actionmeet', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+const connectDB = async () => {
+    try {
+        let dbUri = process.env.MONGODB_URI;
+        if (!dbUri || dbUri.includes('localhost')) {
+            const { MongoMemoryServer } = require('mongodb-memory-server');
+            const mongoServer = await MongoMemoryServer.create();
+            dbUri = mongoServer.getUri();
+            console.log('✅ Using MongoDB Memory Server');
+        }
+        await mongoose.connect(dbUri);
+        console.log('✅ Connected to MongoDB');
+    } catch (err) {
+        console.error('❌ MongoDB connection error:', err);
+    }
+};
+connectDB();
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -4,9 +4,9 @@
   "description": "ActionMeet Frontend - Meeting Agenda & Task Tracking System",
   "main": "index.html",
   "scripts": {
-    "dev": "npx serve . -p 3000 -l client/public --cors",
+    "dev": "npx serve public -l 3000 --cors",
     "build": "echo 'Build complete - Ready for deployment'",
-    "start": "npx serve client/public -p 3000 -l 3000 --cors"
+    "start": "npx serve public -l 3000 --cors"
   },
   "dependencies": {
     "axios": "^1.6.0",

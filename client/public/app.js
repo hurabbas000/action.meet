@@ -3,7 +3,7 @@
 // API Configuration - Dynamic based on environment
 const API_BASE_URL = window.location.hostname === 'actionmeet.up.railway.app' 
     ? 'https://actionmeet-api.up.railway.app/api'  // Production API URL
-    : 'http://localhost:3004/api';                 // Local development URL
+    : 'http://localhost:3001/api';                 // Local development URL
 
 // Global state
 let currentUser = null;
@@ -19,30 +19,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Authentication functions
 function checkAuthState() {
-    // Wait for Firebase to be available
-    if (typeof firebase === 'undefined') {
-        console.error('❌ Firebase SDK not loaded');
-        setTimeout(checkAuthState, 1000); // Retry after 1 second
-        return;
-    }
+    const storedToken = localStorage.getItem('authToken');
+    const storedUser = localStorage.getItem('currentUser');
     
-    if (!window.auth) {
-        console.error('❌ Firebase auth not initialized');
-        setTimeout(checkAuthState, 1000); // Retry after 1 second
-        return;
-    }
-    
-    auth.onAuthStateChanged((user) => {
-        currentUser = user;
-        if (user) {
-            console.log('✅ User authenticated:', user.email);
+    if (storedToken && storedUser) {
+        console.log('✅ User authenticated from local storage');
+        authToken = storedToken;
+        try {
+            currentUser = JSON.parse(storedUser);
             showApp();
             loadMeetings();
-        } else {
-            console.log('🔐 No user authenticated');
-            showLogin();
+        } catch (e) {
+            console.error('Error parsing user data:', e);
+            handleLogout();
         }
-    });
+    } else {
+        console.log('🔐 No user authenticated');
+        showLogin();
+    }
 }
 
 // Handle login
@@ -166,13 +160,13 @@ async function handleSignup(event) {
     }
     
     try {
-        console.log('🔍 Attempting signup to:', `${API_BASE_URL}/auth/signup`);
+        console.log('🔍 Attempting signup to:', `${API_BASE_URL}/auth/register`);
         console.log('👤 Name:', name);
         console.log('📧 Email:', email);
         console.log('🔑 Password provided:', !!password);
         console.log('🌐 Current hostname:', window.location.hostname);
         
-        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -237,6 +231,17 @@ async function loadMeetings() {
         console.error('Error loading meetings:', error);
         showMessage('error-message', 'Network error loading meetings');
     }
+}
+
+// Update user profile
+function updateUserProfile() {
+    if (!currentUser) return;
+    
+    const nameEl = document.getElementById('user-name');
+    const roleEl = document.getElementById('user-role');
+    
+    if (nameEl) nameEl.textContent = currentUser.name || currentUser.email;
+    if (roleEl) roleEl.textContent = currentUser.role || 'Member';
 }
 
 // Update meetings grid
