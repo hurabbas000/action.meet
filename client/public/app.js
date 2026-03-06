@@ -35,7 +35,6 @@ function checkAuthState() {
         if (user) {
             console.log('✅ User authenticated:', user.email);
             showApp();
-            loadUserData();
             loadMeetings();
         } else {
             console.log('🔐 No user authenticated');
@@ -44,18 +43,18 @@ function checkAuthState() {
     });
 }
 
-function handleLogin(event) {
+// Handle login
+async function handleLogin(event) {
     event.preventDefault();
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    
-    // Show loading state
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
-    submitBtn.disabled = true;
     
-    showMessage('success-message', 'Signing in...');
+    // Show loading state
+    submitBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+    submitBtn.disabled = true;
     
     // Add timeout to handle slow responses
     const timeout = setTimeout(() => {
@@ -64,16 +63,16 @@ function handleLogin(event) {
         submitBtn.disabled = false;
     }, 10000); // 10 second timeout
     
-    // Use backend API instead of Firebase
-    fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password })
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
         clearTimeout(timeout);
         
         if (data.success) {
@@ -95,10 +94,15 @@ function handleLogin(event) {
             }, 1000);
         } else {
             showMessage('error-message', data.message || 'Login failed');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     } catch (error) {
+        clearTimeout(timeout);
         console.error('Login error:', error);
         showMessage('error-message', 'Network error. Please try again.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 }
 
@@ -272,8 +276,8 @@ function updateMeetingsGrid() {
                     <i class="fas fa-info-circle"></i> Details
                 </button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // Format date
@@ -524,9 +528,15 @@ function setDefaultDateTime() {
     }
 }
 
-    const pageElement = document.getElementById(page + '-page');
+// Show specific page
+function showPage(pageId) {
+    document.querySelectorAll('.content-area > div').forEach(page => {
+        page.classList.add('hidden');
+    });
+    
+    const pageElement = document.getElementById(pageId);
     if (pageElement) {
-        pageElement.style.display = 'block';
+        pageElement.classList.remove('hidden');
     }
     
     // Update nav

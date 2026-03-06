@@ -69,6 +69,34 @@ app.post('/api/auth/login', (req, res) => {
     }
 });
 
+// Mock signup endpoint
+app.post('/api/auth/signup', (req, res) => {
+    const { name, email, password } = req.body;
+    
+    // Mock validation
+    if (!name || !email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'All fields are required'
+        });
+    }
+    
+    // Mock user creation
+    res.json({
+        success: true,
+        message: 'Account created successfully',
+        data: {
+            user: {
+                id: 'new-user-id',
+                name: name,
+                email: email,
+                role: 'host'
+            },
+            token: 'mock-jwt-token-new-user'
+        }
+    });
+});
+
 // Mock users database (for demo)
 const mockUsers = [
     { id: 'user1', name: 'John Doe', email: 'john@example.com', role: 'host' },
