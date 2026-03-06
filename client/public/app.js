@@ -1,7 +1,9 @@
 // ActionMeet Main Application JavaScript
 
-// API Configuration
-const API_BASE_URL = 'http://localhost:3004/api';
+// API Configuration - Dynamic based on environment
+const API_BASE_URL = window.location.hostname === 'actionmeet.up.railway.app' 
+    ? 'https://actionmeet-api.up.railway.app/api'  // Production API URL
+    : 'http://localhost:3004/api';                 // Local development URL
 
 // Global state
 let currentUser = null;
@@ -67,6 +69,7 @@ async function handleLogin(event) {
         console.log('🔍 Attempting login to:', `${API_BASE_URL}/auth/login`);
         console.log('📧 Email:', email);
         console.log('🔑 Password provided:', !!password);
+        console.log('🌐 Current hostname:', window.location.hostname);
         
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
@@ -167,6 +170,7 @@ async function handleSignup(event) {
         console.log('👤 Name:', name);
         console.log('📧 Email:', email);
         console.log('🔑 Password provided:', !!password);
+        console.log('🌐 Current hostname:', window.location.hostname);
         
         const response = await fetch(`${API_BASE_URL}/auth/signup`, {
             method: 'POST',
