@@ -13,8 +13,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Authentication functions
 function checkAuthState() {
+    // Wait for Firebase to be available
+    if (typeof firebase === 'undefined') {
+        console.error('❌ Firebase SDK not loaded');
+        setTimeout(checkAuthState, 1000); // Retry after 1 second
+        return;
+    }
+    
     if (!window.auth) {
         console.error('❌ Firebase auth not initialized');
+        setTimeout(checkAuthState, 1000); // Retry after 1 second
         return;
     }
     
@@ -37,17 +45,34 @@ function handleLogin(event) {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+    submitBtn.disabled = true;
+    
     showMessage('success-message', 'Signing in...');
+    
+    // Add timeout to handle slow responses
+    const timeout = setTimeout(() => {
+        showMessage('error-message', 'Sign in is taking longer than expected. Please check your connection and try again.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 10000); // 10 second timeout
     
     auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
+            clearTimeout(timeout);
             console.log('✅ Login successful:', userCredential.user.email);
             showMessage('success-message', 'Login successful!');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
             setTimeout(() => {
                 showMessage('success-message', '');
             }, 2000);
         })
         .catch((error) => {
+            clearTimeout(timeout);
             console.error('❌ Login error:', error);
             let errorMessage = error.message;
             
@@ -68,9 +93,17 @@ function handleLogin(event) {
                 case 'auth/network-request-failed':
                     errorMessage = 'Network error. Please check your connection.';
                     break;
+                case 'auth/auth-domain-config-required':
+                    errorMessage = 'Authentication domain configuration issue.';
+                    break;
+                case 'auth/operation-not-allowed':
+                    errorMessage = 'Email/password sign-in is not enabled.';
+                    break;
             }
             
             showMessage('error-message', errorMessage);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         });
 }
 

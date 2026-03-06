@@ -1,16 +1,17 @@
 // Firebase Configuration for ActionMeet - Railway Ready
 const firebaseConfig = {
-    apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBInxnda18rzrTEzYdo0PL2Q0-ThmrsXrI",
-    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "actionmeet-63273.firebaseapp.com",
-    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "actionmeet-63273",
-    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "actionmeet-63273.appspot.com",
-    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "511256922245",
-    appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:511256922245:web:1d5ac7f5439c2bb43f81ec",
-    measurementId: "G-ML5H1CXNE0"
+    apiKey: "AIzaSyBInxnda18rzrTEzYdo0PL2Q0-ThmrsXrI",
+    authDomain: "actionmeet-63273.firebaseapp.com",
+    projectId: "actionmeet-63273",
+    storageBucket: "actionmeet-63273.appspot.com",
+    messagingSenderId: "511256922245",
+    appId: "1:511256922245:web:1d5ac7f5439c2bb43f81ec"
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Initialize Firebase services
 const auth = firebase.auth();

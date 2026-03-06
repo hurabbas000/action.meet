@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "serve -s client/public -p $PORT",
+    "start": "serve -s client/public -l $PORT",
     "build": "echo 'Static build complete'",
     "install-deps": "npm install serve"
   },
