@@ -1,81 +1,104 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss');
+const hpp = require('hpp');
 require('dotenv').config();
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const teamRoutes = require('./routes/team');
+const meetingRoutes = require('./routes/meetings');
+const agendaRoutes = require('./routes/agenda');
+const taskRoutes = require('./routes/tasks');
+const notificationRoutes = require('./routes/notifications');
+const recurringRoutes = require('./routes/recurring');
 
-// Middleware
+// Import middleware
+const errorHandler = require('./middleware/errorHandler');
+const { notFound } = require('./middleware/errorHandler');
+
+const app = express();
+
+// Security middleware
+app.use(helmet());
+app.use(mongoSanitize());
+app.use(hpp());
+
+// CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://yourapp.railway.app'],
     credentials: true
 }));
 
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
 
-// API Routes
+// Body parsing middleware
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Compression middleware
+app.use(compression());
+
+// Logging middleware
+if (process.env.NODE_ENV === 'development') {
+    app.use(morgan('dev'));
+}
+
+// Database connection
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/actionmeet', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => console.log('✅ Connected to MongoDB'))
+.catch((err) => console.error('❌ MongoDB connection error:', err));
+
+// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         message: 'ActionMeet API is running',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0'
     });
 });
 
-app.get('/api/meetings', (req, res) => {
-    // Mock data for now - in real app this would come from Firebase
-    const meetings = [
-        {
-            id: 'weekly-standup',
-            title: 'Weekly Standup',
-            date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            status: 'upcoming',
-            completionRate: 75,
-            totalTasks: 8,
-            completedTasks: 6
-        },
-        {
-            id: 'strategy-review',
-            title: 'Q2 Strategy Review',
-            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'recurring',
-            completionRate: 45,
-            totalTasks: 16,
-            completedTasks: 9
-        }
-    ];
-    
-    res.json(meetings);
-});
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/team', teamRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/agenda', agendaRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/recurring', recurringRoutes);
 
-app.post('/api/meetings', (req, res) => {
-    const { title, date } = req.body;
-    
-    // Mock meeting creation
-    const newMeeting = {
-        id: Date.now().toString(),
-        title: title,
-        date: date,
-        status: 'scheduled',
-        createdAt: new Date().toISOString(),
-        completionRate: 0,
-        totalTasks: 0,
-        completedTasks: 0
-    };
-    
-    console.log('Meeting created:', newMeeting);
-    res.status(201).json(newMeeting);
-});
+// 404 handler
+app.use(notFound);
 
-// Serve frontend
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+// Error handling middleware
+app.use(errorHandler);
 
+// Start server
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`🚀 ActionMeet Server running on http://localhost:${PORT}`);
-    console.log(`📁 Frontend available at: http://localhost:3000`);
+    console.log(`🚀 ActionMeet Server running on port ${PORT}`);
+    console.log(`� Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 API available at: http://localhost:${PORT}/api`);
+    console.log(`� API Documentation: http://localhost:${PORT}/api/health`);
 });
+
+module.exports = app;

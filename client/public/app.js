@@ -1,8 +1,12 @@
 // ActionMeet Main Application JavaScript
 
+// API Configuration
+const API_BASE_URL = 'http://localhost:3003/api';
+
 // Global state
 let currentUser = null;
 let meetings = [];
+let authToken = null;
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -60,51 +64,49 @@ function handleLogin(event) {
         submitBtn.disabled = false;
     }, 10000); // 10 second timeout
     
-    auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            clearTimeout(timeout);
-            console.log('✅ Login successful:', userCredential.user.email);
+    // Use backend API instead of Firebase
+    fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearTimeout(timeout);
+        
+        if (data.success) {
+            console.log('✅ Login successful:', data.data.user.email);
+            currentUser = data.data.user;
+            authToken = data.data.token;
+            
+            // Store in localStorage
+            localStorage.setItem('authToken', authToken);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
             showMessage('success-message', 'Login successful!');
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
+            
             setTimeout(() => {
                 showMessage('success-message', '');
-            }, 2000);
-        })
-        .catch((error) => {
-            clearTimeout(timeout);
-            console.error('❌ Login error:', error);
-            let errorMessage = error.message;
-            
-            // Provide user-friendly error messages
-            switch(error.code) {
-                case 'auth/invalid-credential':
-                    errorMessage = 'Invalid email or password. Please try again.';
-                    break;
-                case 'auth/user-not-found':
-                    errorMessage = 'No account found with this email address.';
-                    break;
-                case 'auth/wrong-password':
-                    errorMessage = 'Incorrect password. Please try again.';
-                    break;
-                case 'auth/too-many-requests':
-                    errorMessage = 'Too many failed attempts. Please try again later.';
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = 'Network error. Please check your connection.';
-                    break;
-                case 'auth/auth-domain-config-required':
-                    errorMessage = 'Authentication domain configuration issue.';
-                    break;
-                case 'auth/operation-not-allowed':
-                    errorMessage = 'Email/password sign-in is not enabled.';
-                    break;
-            }
-            
-            showMessage('error-message', errorMessage);
+                showApp();
+                loadMeetings();
+            }, 1000);
+        } else {
+            showMessage('error-message', data.message);
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-        });
+        }
+    })
+    .catch((error) => {
+        clearTimeout(timeout);
+        console.error('❌ Login error:', error);
+        showMessage('error-message', 'Network error. Please check your connection.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 function handleSignup(event) {
