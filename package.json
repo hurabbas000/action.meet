@@ -1,0 +1,21 @@
+{
+  "name": "actionmeet",
+  "version": "1.0.0",
+  "description": "AI-powered meeting agenda and task tracking system",
+  "main": "client/public/index.html",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "serve -s client/public -p $PORT",
+    "build": "echo 'Static build complete'",
+    "install-deps": "npm install serve"
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  },
+  "devDependencies": {},
+  "keywords": ["meeting", "agenda", "task", "firebase", "railway"],
+  "author": "ActionMeet Team",
+  "license": "MIT"
+}
