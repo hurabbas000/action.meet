@@ -64,6 +64,10 @@ async function handleLogin(event) {
     }, 10000); // 10 second timeout
     
     try {
+        console.log('🔍 Attempting login to:', `${API_BASE_URL}/auth/login`);
+        console.log('📧 Email:', email);
+        console.log('🔑 Password provided:', !!password);
+        
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
@@ -72,7 +76,12 @@ async function handleLogin(event) {
             body: JSON.stringify({ email, password })
         });
         
+        console.log('📡 Response status:', response.status);
+        console.log('📡 Response headers:', response.headers);
+        
         const data = await response.json();
+        console.log('📊 Response data:', data);
+        
         clearTimeout(timeout);
         
         if (data.success) {
@@ -154,6 +163,11 @@ async function handleSignup(event) {
     }
     
     try {
+        console.log('🔍 Attempting signup to:', `${API_BASE_URL}/auth/signup`);
+        console.log('👤 Name:', name);
+        console.log('📧 Email:', email);
+        console.log('🔑 Password provided:', !!password);
+        
         const response = await fetch(`${API_BASE_URL}/auth/signup`, {
             method: 'POST',
             headers: {
@@ -162,7 +176,10 @@ async function handleSignup(event) {
             body: JSON.stringify({ name, email, password })
         });
         
+        console.log('📡 Signup response status:', response.status);
+        
         const data = await response.json();
+        console.log('📊 Signup response data:', data);
         
         if (data.success) {
             showMessage('success-message', 'Account created successfully!');
