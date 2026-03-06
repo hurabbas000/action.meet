@@ -1,0 +1,29 @@
+{
+  "name": "actionmeet-server",
+  "version": "1.0.0",
+  "description": "ActionMeet Backend API - Meeting Agenda & Task Tracking System",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo 'No tests specified yet'"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "cors": "^2.8.5",
+    "firebase": "^10.7.1",
+    "firebase-admin": "^11.0.0",
+    "dotenv": "^16.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "helmet": "^6.0.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^6.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  },
+  "keywords": ["meeting", "agenda", "task", "api", "firebase", "nodejs"],
+  "author": "ActionMeet Team",
+  "license": "MIT"
+}

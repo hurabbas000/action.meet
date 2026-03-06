@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActionMeet - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ActionMeet</h1>
+            <div class="header-actions">
+                <span id="user-email"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="dashboard-header">
+                <h2>Meetings Dashboard</h2>
+                <button id="create-meeting-btn" class="primary-btn">Create New Meeting</button>
+            </div>
+
+            <div id="meetings-list" class="meetings-grid">
+                <!-- Meetings will be dynamically added here -->
+            </div>
+
+            <div id="no-meetings" class="empty-state" style="display: none;">
+                <h3>No meetings yet</h3>
+                <p>Create your first meeting to get started.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Meeting Modal -->
+    <div id="create-meeting-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Meeting</h2>
+            <form id="create-meeting-form">
+                <div class="form-group">
+                    <label for="meeting-title">Meeting Title</label>
+                    <input type="text" id="meeting-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="meeting-date">Meeting Date</label>
+                    <input type="datetime-local" id="meeting-date" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-meeting">Cancel</button>
+                    <button type="submit" class="primary-btn">Create Meeting</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

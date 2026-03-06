@@ -1,0 +1,27 @@
+Feature 2: Meeting Scheduling & Dashboard
+
+This feature allows users to create, view, and organize meetings while providing a quick overview of their progress.
+
+Epic 2.1: Meeting Creation
+
+Users need a way to create and manage meetings.
+
+User Stories:
+
+Create Meeting: As a user, I want to create a new meeting with a title and date so that I can schedule upcoming meetings.
+
+View Meetings: As a user, I want to view upcoming and past meetings to easily access meeting information.
+
+Open Meeting Details: As a user, I want to open a meeting page to manage its agenda points and tasks.
+
+Epic 2.2: Meeting Dashboard
+
+Users need a central page to monitor meetings and tasks.
+
+User Stories:
+
+View Dashboard: As a user, I want to see a dashboard listing all meetings so that I can quickly navigate between them.
+
+Track Progress: As a user, I want to see the number of open and closed agenda points for each meeting to monitor team progress.
+
+Quick Navigation: As a user, I want to access meeting details directly from the dashboard to save time.

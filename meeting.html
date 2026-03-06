@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActionMeet - Meeting Details</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-nav">
+                <button id="back-to-dashboard" class="back-btn">← Back to Dashboard</button>
+                <h1>ActionMeet</h1>
+            </div>
+            <div class="header-actions">
+                <span id="user-email"></span>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="meeting-header">
+                <h2 id="meeting-title"></h2>
+                <p id="meeting-date"></p>
+            </div>
+
+            <div class="agenda-section">
+                <div class="section-header">
+                    <h3>Agenda Points</h3>
+                    <button id="add-agenda-btn" class="primary-btn">Add Agenda Point</button>
+                </div>
+
+                <div class="agenda-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="open-count">0</span>
+                        <span class="stat-label">Open Tasks</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="closed-count">0</span>
+                        <span class="stat-label">Closed Tasks</span>
+                    </div>
+                </div>
+
+                <div id="agenda-list" class="agenda-list">
+                    <!-- Agenda points will be dynamically added here -->
+                </div>
+
+                <div id="no-agenda" class="empty-state" style="display: none;">
+                    <h3>No agenda points yet</h3>
+                    <p>Add your first agenda point to get started.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Agenda Modal -->
+    <div id="agenda-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Add Agenda Point</h2>
+            <form id="agenda-form">
+                <div class="form-group">
+                    <label for="agenda-text">Agenda Point</label>
+                    <textarea id="agenda-text" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="responsible-name">Responsible Person Name</label>
+                    <input type="text" id="responsible-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="responsible-phone">Phone Number</label>
+                    <input type="tel" id="responsible-phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="agenda-status">Status</label>
+                    <select id="agenda-status">
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-agenda">Cancel</button>
+                    <button type="submit" class="primary-btn">Save Agenda Point</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
