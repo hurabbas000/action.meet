@@ -201,12 +201,14 @@ meetingSchema.methods.calculateCompletionRate = function() {
     return this.save();
 };
 
-// Pre-save middleware to update statistics
-meetingSchema.pre('save', function(next) {
-    if (this.isModified('agenda')) {
-        this.calculateCompletionRate();
+// Pre-save middleware to update statistics (inline — no nested save)
+meetingSchema.pre('save', function() {
+    const total = this.statistics?.totalAgendaItems || 0;
+    const completed = this.statistics?.completedAgendaItems || 0;
+    if (this.statistics) {
+        this.statistics.completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        this.statistics.openAgendaItems = total - completed;
     }
-    next();
 });
 
 module.exports = mongoose.model('Meeting', meetingSchema);

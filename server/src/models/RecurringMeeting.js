@@ -210,10 +210,14 @@ recurringMeetingSchema.methods.calculateNextMeetingDate = function() {
             break;
             
         case 'monthly':
-            nextDate.setMonth(nextDate.getMonth() + interval);
-            if (dayOfMonth) {
-                nextDate.setDate(Math.min(dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
-            }
+            const currentYear = nextDate.getFullYear();
+            const currentMonth = nextDate.getMonth();
+            const originalDay = dayOfMonth || nextDate.getDate();
+            
+            const targetMonth = currentMonth + interval;
+            nextDate.setFullYear(currentYear + Math.floor(targetMonth / 12));
+            nextDate.setMonth(targetMonth % 12);
+            nextDate.setDate(Math.min(originalDay, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
             break;
             
         default:

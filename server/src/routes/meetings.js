@@ -23,10 +23,14 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-// Get all meetings for current user
+/**
+ * @route   GET /api/meetings
+ * @desc    Get all meetings where the authenticated user is a host or a participant
+ * @access  Private
+ */
 router.get('/', authenticate, async (req, res) => {
     try {
-        const { page = 1, limit = 10, status, type, startDate, endDate } = req.query;
+        const { page = 1, limit = 50, status, type } = req.query;
         
         const query = {
             $or: [
@@ -35,37 +39,50 @@ router.get('/', authenticate, async (req, res) => {
             ]
         };
 
-        // Filter by status
-        if (status) {
-            query.status = status;
-        }
-
-        // Filter by meeting type
-        if (type) {
-            query.meetingType = type;
-        }
-
-        // Filter by date range
-        if (startDate || endDate) {
-            query.scheduledFor = {};
-            if (startDate) query.scheduledFor.$gte = new Date(startDate);
-            if (endDate) query.scheduledFor.$lte = new Date(endDate);
-        }
+        if (status) query.status = status;
+        if (type) query.meetingType = type;
 
         const meetings = await Meeting.find(query)
             .populate('host', 'name email')
-            .populate('participants.user', 'name email')
-            .populate('team', 'name')
+            .populate('participants.user', 'name email phone')
+            .populate({
+                path: 'agenda',
+                populate: { path: 'responsiblePerson.user', select: 'name email' }
+            })
             .sort({ scheduledFor: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
         const total = await Meeting.countDocuments(query);
+        const now = new Date();
+
+        // Map meetings to frontend-friendly format
+        const mappedMeetings = meetings.map(m => {
+            const obj = m.toObject({ virtuals: true });
+            // Compute frontend status
+            if (m.status === 'cancelled') obj.status = 'cancelled';
+            else if (m.status === 'completed') obj.status = 'past';
+            else if (m.scheduledFor > now) obj.status = 'upcoming';
+            else obj.status = 'past';
+
+            // Map agenda items to agendaPoints for frontend
+            obj.agendaPoints = (obj.agenda || []).map(a => ({
+                id: a._id,
+                _id: a._id,
+                text: a.title || a.description || '',
+                note: a.description || '',
+                status: a.status === 'completed' ? 'closed' : 'open',
+                assignedTo: a.responsiblePerson?.user || null,
+                carriedForward: a.carriedForward || false
+            }));
+
+            return obj;
+        });
 
         res.json({
             success: true,
             data: {
-                meetings,
+                meetings: mappedMeetings,
                 pagination: {
                     current: parseInt(page),
                     total: Math.ceil(total / limit),
@@ -79,7 +96,11 @@ router.get('/', authenticate, async (req, res) => {
     }
 });
 
-// Get single meeting with details
+/**
+ * @route   GET /api/meetings/:id
+ * @desc    Fetch comprehensive details of a specific meeting including agenda and participants
+ * @access  Private (Meeting Host or Participants)
+ */
 router.get('/:id', authenticate, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.id)
@@ -112,7 +133,11 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 });
 
-// Create new meeting
+/**
+ * @route   POST /api/meetings :id
+ * @desc    Create a new meeting and automatically set the creator as the host
+ * @access  Private
+ */
 router.post('/', [
     authenticate,
     body('title').trim().isLength({ min: 2, max: 200 }).withMessage('Title must be between 2 and 200 characters'),
@@ -188,7 +213,11 @@ router.post('/', [
     }
 });
 
-// Update meeting
+/**
+ * @route   PUT /api/meetings/:id
+ * @desc    Update top-level meeting details (Title, Schedule, Duration, Location)
+ * @access  Private (Meeting Host only)
+ */
 router.put('/:id', [
     authenticate,
     body('title').optional().trim().isLength({ min: 2, max: 200 }).withMessage('Title must be between 2 and 200 characters'),
@@ -237,7 +266,11 @@ router.put('/:id', [
     }
 });
 
-// Add participant to meeting
+/**
+ * @route   POST /api/meetings/:id/participants
+ * @desc    Add a new participant to an existing meeting
+ * @access  Private (Meeting Host only)
+ */
 router.post('/:id/participants', [
     authenticate,
     body('userId').isMongoId().withMessage('Valid user ID is required')
@@ -276,7 +309,11 @@ router.post('/:id/participants', [
     }
 });
 
-// Update participant status
+/**
+ * @route   PUT /api/meetings/:id/participants/:userId
+ * @desc    Update a participant's RSVP or attendance status
+ * @access  Private (Meeting Host OR the Participant themself)
+ */
 router.put('/:id/participants/:userId', [
     authenticate,
     body('status').isIn(['confirmed', 'declined', 'attended', 'absent']).withMessage('Invalid status')
@@ -318,7 +355,11 @@ router.put('/:id/participants/:userId', [
     }
 });
 
-// Delete meeting
+/**
+ * @route   DELETE /api/meetings/:id
+ * @desc    Delete a meeting entirely
+ * @access  Private (Meeting Host only)
+ */
 router.delete('/:id', authenticate, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.id);
@@ -331,10 +372,6 @@ router.delete('/:id', authenticate, async (req, res) => {
             return res.status(403).json({ success: false, message: 'Only meeting host can delete meeting' });
         }
 
-        // Check if meeting has already started
-        if (meeting.scheduledFor <= new Date()) {
-            return res.status(400).json({ success: false, message: 'Cannot delete meeting that has already started' });
-        }
 
         await Meeting.findByIdAndDelete(req.params.id);
 
@@ -348,7 +385,11 @@ router.delete('/:id', authenticate, async (req, res) => {
     }
 });
 
-// Get meeting statistics
+/**
+ * @route   GET /api/meetings/:id/statistics
+ * @desc    Retrieve completion and attendance metrics for a meeting
+ * @access  Private (Meeting Host or Participants)
+ */
 router.get('/:id/statistics', authenticate, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.id)

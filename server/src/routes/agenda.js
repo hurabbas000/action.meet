@@ -22,7 +22,11 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-// Get agenda items for a meeting
+/**
+ * @route   GET /api/agenda/meeting/:meetingId
+ * @desc    Get all agenda items for a specific meeting
+ * @access  Private (Meeting Host or Participants)
+ */
 router.get('/meeting/:meetingId', authenticate, async (req, res) => {
     try {
         const meeting = await Meeting.findById(req.params.meetingId);
@@ -54,7 +58,11 @@ router.get('/meeting/:meetingId', authenticate, async (req, res) => {
     }
 });
 
-// Create agenda item
+/**
+ * @route   POST /api/agenda
+ * @desc    Create a new agenda item / task
+ * @access  Private (Meeting Host only)
+ */
 router.post('/', [
     authenticate,
     body('title').trim().isLength({ min: 2, max: 200 }).withMessage('Title must be between 2 and 200 characters'),
@@ -79,11 +87,10 @@ router.post('/', [
             return res.status(404).json({ success: false, message: 'Meeting not found' });
         }
 
-        const hasAccess = meetingDoc.host.toString() === req.userId ||
-            meetingDoc.participants.some(p => p.user.toString() === req.userId);
-
-        if (!hasAccess) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
+        // Explicitly enforce that only the Meeting Host can create agendas/tasks
+        const isHost = meetingDoc.host.toString() === req.userId;
+        if (!isHost) {
+            return res.status(403).json({ success: false, message: 'Only the meeting host can create agenda items and assign tasks.' });
         }
 
         const agenda = new Agenda({
@@ -118,7 +125,11 @@ router.post('/', [
     }
 });
 
-// Update agenda item
+/**
+ * @route   PUT /api/agenda/:id
+ * @desc    Update an agenda item or update task status
+ * @access  Private (Host: full update. Assignee: status update only)
+ */
 router.put('/:id', authenticate, async (req, res) => {
     try {
         const agenda = await Agenda.findById(req.params.id);
@@ -126,16 +137,35 @@ router.put('/:id', authenticate, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Agenda item not found' });
         }
 
-        // Check meeting access
+        // Role-Based Access Control logic
         const meeting = await Meeting.findById(agenda.meeting);
-        const hasAccess = meeting.host.toString() === req.userId ||
-            meeting.participants.some(p => p.user.toString() === req.userId);
+        const isHost = meeting.host.toString() === req.userId;
+        const isAssignee = agenda.responsiblePerson?.user?.toString() === req.userId;
 
+        // Verify user is at least a participant in the meeting
+        const hasAccess = isHost || meeting.participants.some(p => p.user.toString() === req.userId);
         if (!hasAccess) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
+            return res.status(403).json({ success: false, message: 'Access denied to this meeting' });
+        }
+
+        // If the user isn't the host and hasn't been assigned this task, forbid access
+        if (!isHost && !isAssignee) {
+            return res.status(403).json({ success: false, message: 'Only meeting hosts or task assignees can modify tasks' });
         }
 
         const updates = req.body;
+        
+        // If the user is an assignee but NOT the host, they can ONLY update the status to complete tasks
+        if (!isHost) {
+            const allowedUpdates = ['status'];
+            const updateKeys = Object.keys(updates);
+            const isValidOperation = updateKeys.every(update => allowedUpdates.includes(update));
+            if (!isValidOperation) {
+                return res.status(403).json({ success: false, message: 'Members can only update the status of tasks assigned to them.' });
+            }
+        }
+
+        // Apply whitelisted updates
         Object.keys(updates).forEach(key => {
             if (key !== 'createdBy' && key !== 'meeting') {
                 agenda[key] = updates[key];
@@ -157,7 +187,11 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 });
 
-// Delete agenda item
+/**
+ * @route   DELETE /api/agenda/:id
+ * @desc    Delete an agenda item
+ * @access  Private (Meeting Host only)
+ */
 router.delete('/:id', authenticate, async (req, res) => {
     try {
         const agenda = await Agenda.findById(req.params.id);
@@ -165,12 +199,12 @@ router.delete('/:id', authenticate, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Agenda item not found' });
         }
 
-        // Check if user created it or is meeting host
+        // Check if user is meeting host strictly
         const meeting = await Meeting.findById(agenda.meeting);
-        const canDelete = agenda.createdBy.toString() === req.userId || meeting.host.toString() === req.userId;
+        const isHost = meeting.host.toString() === req.userId;
 
-        if (!canDelete) {
-            return res.status(403).json({ success: false, message: 'Access denied' });
+        if (!isHost) {
+            return res.status(403).json({ success: false, message: 'Only the meeting host can delete agenda items' });
         }
 
         await Agenda.findByIdAndDelete(req.params.id);

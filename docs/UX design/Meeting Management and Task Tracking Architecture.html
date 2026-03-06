@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" style=""><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetFlow - Software Design &amp; Architecture Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500;700&display=swap');
+
+      body {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 40px 60px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #333;
+        line-height: 1.6;
+        background-color: #fff;
+      }
+
+      /* Cover Page Styling */
+      .cover-page {
+        text-align: center;
+        margin-top: 150px;
+        margin-bottom: 200px;
+        page-break-after: always;
+      }
+
+      .cover-title {
+        font-size: 3em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+      }
+
+      .cover-subtitle {
+        font-size: 1.5em;
+        color: #555;
+        margin-bottom: 40px;
+        font-weight: 300;
+      }
+
+      .cover-meta {
+        font-size: 1.1em;
+        color: #777;
+        margin-top: 80px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+        display: inline-block;
+        text-align: left;
+      }
+
+      /* General Typography */
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        color: #2c3e50;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+      }
+
+      h2 {
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+        font-size: 1.8em;
+      }
+
+      h3 {
+        font-size: 1.4em;
+        margin-top: 1.8em;
+        color: #34495e;
+      }
+
+      h4 {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 0.5em;
+      }
+
+      p {
+        margin-bottom: 1em;
+        text-align: justify;
+      }
+
+      /* Table of Contents */
+      .toc {
+        background-color: #f9f9f9;
+        padding: 30px;
+        border-radius: 4px;
+        margin-bottom: 50px;
+        border: 1px solid #eee;
+      }
+
+      .toc h2 {
+        margin-top: 0;
+        border-bottom: none;
+        font-size: 1.5em;
+        text-align: center;
+      }
+
+      .toc ul {
+        list-style-type: none;
+        padding-left: 0;
+      }
+
+      .toc li {
+        margin-bottom: 8px;
+      }
+
+      .toc a {
+        text-decoration: none;
+        color: #333;
+        font-weight: 500;
+      }
+
+      .toc a:hover {
+        color: #007bff;
+        text-decoration: underline;
+      }
+
+      .toc .sub-item {
+        padding-left: 20px;
+        font-size: 0.95em;
+        color: #666;
+      }
+
+      /* Tables */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 0.9em;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+      }
+
+      th {
+        background-color: #f4f6f7;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      tr:nth-child(even) {
+        background-color: #fdfdfd;
+      }
+
+      /* Code Blocks */
+      pre {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 15px;
+        overflow-x: hidden; /* Prevent scrollbars */
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.85em;
+        white-space: pre-wrap; /* Wrap text instead of scroll */
+        margin: 20px 0;
+      }
+
+      code {
+        font-family: 'Roboto Mono', monospace;
+        background-color: #f1f3f5;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 0.9em;
+        color: #d63384;
+      }
+
+      pre code {
+        color: #333;
+        background-color: transparent;
+        padding: 0;
+      }
+
+      /* Lists */
+      ul,
+      ol {
+        margin-bottom: 1em;
+        padding-left: 25px;
+      }
+
+      li {
+        margin-bottom: 5px;
+      }
+
+      /* Visual Hierarchy Elements */
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .badge-green {
+        background-color: #e6fffa;
+        color: #008060;
+        border: 1px solid #b2f5ea;
+      }
+      .badge-blue {
+        background-color: #ebf8ff;
+        color: #3182ce;
+        border: 1px solid #bee3f8;
+      }
+      .badge-orange {
+        background-color: #fffaf0;
+        color: #dd6b20;
+        border: 1px solid #feebc8;
+      }
+      .badge-red {
+        background-color: #fff5f5;
+        color: #e53e3e;
+        border: 1px solid #fed7d7;
+      }
+
+      .diagram-box {
+        border: 1px dashed #ccc;
+        padding: 20px;
+        background-color: #fafafa;
+        font-family: 'Roboto Mono', monospace;
+        white-space: pre;
+        overflow-x: hidden;
+        font-size: 0.8em;
+        line-height: 1.2;
+        color: #555;
+        margin: 20px 0;
+      }
+
+      .method {
+        font-weight: bold;
+        display: inline-block;
+        width: 60px;
+      }
+
+      .method-get {
+        color: #008060;
+      }
+      .method-post {
+        color: #3182ce;
+      }
+      .method-put {
+        color: #dd6b20;
+      }
+      .method-delete {
+        color: #e53e3e;
+      }
+      .method-patch {
+        color: #805ad5;
+      }
+
+      hr {
+        margin: 40px 0;
+        border: 0;
+        border-top: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body style="">
+    <!-- Cover Page -->
+    <div class="cover-page">
+      <div class="cover-title">MeetFlow</div>
+      <div class="cover-subtitle">Software Design &amp; Architecture Document</div>
+
+      <div class="cover-meta">
+        <strong>Version:</strong> 1.0<br>
+        <strong>Date:</strong> March 2026<br>
+        <strong>Prepared By:</strong> MeetFlow Engineering Team<br>
+        <strong>Status:</strong> Approved for Development
+      </div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+      <h2>Table of Contents</h2>
+      <ul>
+        <li><a href="#section-1">1. Product Summary &amp; Goals</a></li>
+        <li>
+          <a href="#section-2">2. System Architecture</a>
+          <ul>
+            <li class="sub-item"><a href="#section-2-1">2.1 Recommended Tech Stack</a></li>
+            <li class="sub-item"><a href="#section-2-2">2.2 Architecture Overview</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section-3">3. Database Schema Design</a>
+          <ul>
+            <li class="sub-item"><a href="#section-3-1">3.1 Collection: users</a></li>
+            <li class="sub-item"><a href="#section-3-2">3.2 Collection: teamMembers</a></li>
+            <li class="sub-item"><a href="#section-3-3">3.3 Collection: meetings</a></li>
+            <li class="sub-item"><a href="#section-3-4">3.4 Collection: agendaPoints</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#section-4">4. API Specification</a>
+          <ul>
+            <li class="sub-item"><a href="#section-4-1">4.1 Authentication Endpoints</a></li>
+            <li class="sub-item"><a href="#section-4-2">4.2 Team Members Endpoints</a></li>
+            <li class="sub-item"><a href="#section-4-3">4.3 Meetings Endpoints</a></li>
+            <li class="sub-item"><a href="#section-4-4">4.4 Agenda Points Endpoints</a></li>
+            <li class="sub-item"><a href="#section-4-5">4.5 Reminders Endpoints</a></li>
+          </ul>
+        </li>
+        <li><a href="#section-5">5. Key Business Logic</a></li>
+        <li><a href="#section-6">6. Frontend Screen Map</a></li>
+        <li><a href="#section-7">7. Project Folder Structure</a></li>
+        <li><a href="#section-8">8. Security Considerations</a></li>
+        <li><a href="#section-9">9. Environment Variables</a></li>
+        <li><a href="#section-10">10. MVP Rollout Plan</a></li>
+        <li><a href="#section-11">11. Future Enhancements</a></li>
+      </ul>
+    </div>
+
+    <!-- Main Content -->
+
+    <div id="section-1">
+      <h2>1. Product Summary &amp; Goals</h2>
+
+      <p><strong>Product Name</strong>: MeetFlow</p>
+
+      <p>
+        <strong>Purpose</strong>: A web and mobile-responsive application designed to streamline meeting management,
+        agenda tracking, task assignment, and automated follow-ups. MeetFlow helps teams ensure accountability by
+        tracking open tasks across recurring meetings and sending automated WhatsApp reminders to responsible
+        individuals.
+      </p>
+
+      <p><strong>Target Users</strong>:</p>
+      <ul>
+        <li>Team leaders and managers</li>
+        <li>Project coordinators</li>
+        <li>Small to medium-sized teams (5-50 members)</li>
+        <li>Organizations requiring structured meeting follow-through</li>
+      </ul>
+
+      <p><strong>Key Value Propositions</strong>:</p>
+      <ul>
+        <li>Never lose track of meeting action items with automatic task carry-forward</li>
+        <li>Clear accountability through responsible person assignment</li>
+        <li>Automated WhatsApp reminders ensure tasks are completed</li>
+        <li>Hierarchical recurring meetings with visual progress tracking</li>
+        <li>Simple, intuitive interface focused on productivity</li>
+      </ul>
+
+      <p><strong>5 Core Features</strong>:</p>
+      <ol>
+        <li>
+          <strong>User Access &amp; Team Management</strong> - Secure authentication and centralized team contact repository
+        </li>
+        <li><strong>Meeting Scheduling &amp; Dashboard</strong> - Create meetings and monitor progress at a glance</li>
+        <li>
+          <strong>Agenda &amp; Task Management</strong> - Structured agenda points with status tracking and responsibility
+          assignment
+        </li>
+        <li>
+          <strong>Task Continuity &amp; Reminder System</strong> - Automatic carry-forward of open tasks and WhatsApp-based
+          reminders
+        </li>
+        <li>
+          <strong>Recurring &amp; Follow-up Meetings</strong> - Parent meetings with hierarchical follow-up sessions and
+          collapsed UI for clarity
+        </li>
+      </ol>
+    </div>
+
+    <hr>
+
+    <div id="section-2">
+      <h2>2. System Architecture</h2>
+
+      <div id="section-2-1">
+        <h3>2.1 Recommended Tech Stack</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Technology</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Frontend</td>
+              <td>Next.js 14 (App Router)</td>
+              <td>Modern React framework with SSR, mobile-responsive, excellent DX</td>
+            </tr>
+            <tr>
+              <td>Backend</td>
+              <td>Node.js + Express</td>
+              <td>Lightweight, fast, excellent ecosystem for REST APIs</td>
+            </tr>
+            <tr>
+              <td>Database</td>
+              <td>MongoDB + Mongoose</td>
+              <td>Flexible document model perfect for hierarchical meetings structure</td>
+            </tr>
+            <tr>
+              <td>Authentication</td>
+              <td>JWT (Access + Refresh tokens)</td>
+              <td>Industry standard, stateless, secure with httpOnly cookies</td>
+            </tr>
+            <tr>
+              <td>Messaging</td>
+              <td>Meta WhatsApp Business Cloud API</td>
+              <td>Free tier available, reliable, widely used platform</td>
+            </tr>
+            <tr>
+              <td>Background Jobs</td>
+              <td>node-cron</td>
+              <td>Simple scheduler for daily reminder jobs, no Redis dependency</td>
+            </tr>
+            <tr>
+              <td>Hosting</td>
+              <td>Railway.app or Render.com</td>
+              <td>Cost-effective, easy deployment, built-in MongoDB hosting</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="section-2-2">
+        <h3>2.2 Architecture Overview</h3>
+        <p><strong>High-Level Flow</strong>:</p>
+        <div class="diagram-box">
+          ┌─────────────┐ │ Client │ (Next.js - Web/Mobile Browser) │ (Browser) │ └──────┬──────┘ │ HTTPS/REST ▼
+          ┌─────────────────────────────────────┐ │ Express.js REST API │ │ ┌─────────────────────────────┐ │ │ │ Routes
+          → Controllers │ │ │ │ Controllers → Services │ │ │ │ Services → Models │ │ │ └─────────────────────────────┘ │
+          └──────┬──────────────────┬───────────┘ │ │ ▼ ▼ ┌──────────────┐ ┌─────────────────┐ │ MongoDB │ │ Cron
+          Scheduler │ │ Database │ │ (Daily 8 AM) │ └──────────────┘ └────────┬────────┘ │ ▼ ┌────────────────────┐ │
+          WhatsApp Cloud API│ │ (Send Reminders) │ └────────────────────┘
+        </div>
+
+        <p><strong>Architectural Pattern</strong>: Layered Architecture</p>
+        <ol>
+          <li><strong>Routes Layer</strong> - HTTP endpoint definitions, request validation</li>
+          <li><strong>Controllers Layer</strong> - Request/response handling, business logic orchestration</li>
+          <li><strong>Services Layer</strong> - Core business logic, data transformations, external API calls</li>
+          <li><strong>Models Layer</strong> - Database schema definitions and data access</li>
+        </ol>
+      </div>
+    </div>
+
+    <hr>
+
+    <div id="section-3">
+      <h2>3. Database Schema Design</h2>
+
+      <div id="section-3-1">
+        <h3>3.1 Collection: <code>users</code></h3>
+        <p><strong>Purpose</strong>: Store user account information for authentication</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Constraints</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>_id</td>
+              <td>ObjectId</td>
+              <td>Primary Key</td>
+              <td>Auto-generated unique identifier</td>
+            </tr>
+            <tr>
+              <td>email</td>
+              <td>String</td>
+              <td>Required, Unique, Lowercase, Indexed</td>
+              <td>User's email address for login</td>
+            </tr>
+            <tr>
+              <td>passwordHash</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>Bcrypt hashed password (10 rounds)</td>
+            </tr>
+            <tr>
+              <td>name</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>User's full name</td>
+            </tr>
+            <tr>
+              <td>createdAt</td>
+              <td>Date</td>
+              <td>Auto-generated</td>
+              <td>Account creation timestamp</td>
+            </tr>
+            <tr>
+              <td>updatedAt</td>
+              <td>Date</td>
+              <td>Auto-generated</td>
+              <td>Last update timestamp</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><strong>Indexes</strong>: <code>email</code> (unique, ascending)</p>
+      </div>
+
+      <div id="section-3-2">
+        <h3>3.2 Collection: <code>teamMembers</code></h3>
+        <p><strong>Purpose</strong>: Store team contact information for task assignment and WhatsApp notifications</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Constraints</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>_id</td>
+              <td>ObjectId</td>
+              <td>Primary Key</td>
+              <td>Auto-generated unique identifier</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>ObjectId</td>
+              <td>Required, Indexed, Ref: users</td>
+              <td>Owner of this contact</td>
+            </tr>
+            <tr>
+              <td>name</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>Team member's full name</td>
+            </tr>
+            <tr>
+              <td>phone</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>Phone in E.164 format (e.g., +971501234567)</td>
+            </tr>
+            <tr>
+              <td>createdAt</td>
+              <td>Date</td>
+              <td>Auto-generated</td>
+              <td>Record creation timestamp</td>
+            </tr>
+            <tr>
+              <td>updatedAt</td>
+              <td>Date</td>
+              <td>Auto-generated</td>
+              <td>Last update timestamp</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><strong>Indexes</strong>: <code>userId</code> (ascending)</p>
+      </div>
+
+      <div id="section-3-3">
+        <h3>3.3 Collection: <code>meetings</code></h3>
+        <p>
+          <strong>Purpose</strong>: Store all meetings including standalone, parent (recurring), and follow-up sessions
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Constraints</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>_id</td>
+              <td>ObjectId</td>
+              <td>Primary Key</td>
+              <td>Auto-generated unique identifier</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>ObjectId</td>
+              <td>Required, Indexed, Ref: users</td>
+              <td>Meeting owner</td>
+            </tr>
+            <tr>
+              <td>title</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>Meeting title/name</td>
+            </tr>
+            <tr>
+              <td>date</td>
+              <td>Date</td>
+              <td>Required, Indexed</td>
+              <td>Scheduled meeting date</td>
+            </tr>
+            <tr>
+              <td>type</td>
+              <td>String</td>
+              <td>Required, Enum</td>
+              <td>'standalone', 'parent', or 'followup'</td>
+            </tr>
+            <tr>
+              <td>parentMeetingId</td>
+              <td>ObjectId</td>
+              <td>Optional, Indexed, Ref: meetings</td>
+              <td>Parent meeting reference (only for followup type)</td>
+            </tr>
+            <tr>
+              <td>followupSequence</td>
+              <td>Number</td>
+              <td>Optional</td>
+              <td>Sequential number (1,2,3...) for follow-ups</td>
+            </tr>
+            <tr>
+              <td>recurrence</td>
+              <td>Object</td>
+              <td>Optional</td>
+              <td>Recurrence settings (only for parent type)</td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>String</td>
+              <td>Required, Enum, Indexed</td>
+              <td>'upcoming', 'active', 'completed'</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>Indexes</strong>: <code>userId</code>, <code>parentMeetingId</code>, <code>date</code>,
+          <code>status</code>
+        </p>
+      </div>
+
+      <div id="section-3-4">
+        <h3>3.4 Collection: <code>agendaPoints</code></h3>
+        <p>
+          <strong>Purpose</strong>: Store agenda items/tasks for meetings with status tracking and responsibility
+          assignment
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Constraints</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>_id</td>
+              <td>ObjectId</td>
+              <td>Primary Key</td>
+              <td>Auto-generated unique identifier</td>
+            </tr>
+            <tr>
+              <td>meetingId</td>
+              <td>ObjectId</td>
+              <td>Required, Indexed, Ref: meetings</td>
+              <td>Associated meeting</td>
+            </tr>
+            <tr>
+              <td>userId</td>
+              <td>ObjectId</td>
+              <td>Required, Ref: users</td>
+              <td>Agenda point creator</td>
+            </tr>
+            <tr>
+              <td>description</td>
+              <td>String</td>
+              <td>Required</td>
+              <td>Task/agenda item description</td>
+            </tr>
+            <tr>
+              <td>responsiblePersonId</td>
+              <td>ObjectId</td>
+              <td>Optional, Indexed, Ref: teamMembers</td>
+              <td>Assigned team member</td>
+            </tr>
+            <tr>
+              <td>status</td>
+              <td>String</td>
+              <td>Required, Enum, Default: 'open'</td>
+              <td>'open' or 'closed'</td>
+            </tr>
+            <tr>
+              <td>carriedForwardFromId</td>
+              <td>ObjectId</td>
+              <td>Optional, Ref: agendaPoints</td>
+              <td>Origin task if carried forward</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr>
+
+    <div id="section-4">
+      <h2>4. API Specification</h2>
+
+      <div id="section-4-1">
+        <h3>4.1 Authentication Endpoints</h3>
+        <p><strong>Base Path</strong>: <code>/api/auth</code></p>
+
+        <p><span class="method method-post">POST</span> <code>/register</code> - Create a new user account</p>
+        <pre><code>{
+  "name": "John Doe",
+  "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5d373235331d38253c302d3138733e3230">[email&#160;protected]</a>",
+  "password": "SecurePass123!"
+}</code></pre>
+
+        <p>
+          <span class="method method-post">POST</span> <code>/login</code> - Authenticate user and receive access token
+        </p>
+        <pre><code>{
+  "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="365c595e5876534e575b465a531855595b">[email&#160;protected]</a>",
+  "password": "SecurePass123!"
+}</code></pre>
+
+        <p><span class="method method-post">POST</span> <code>/logout</code> - Invalidate refresh token</p>
+        <p>
+          <span class="method method-post">POST</span> <code>/refresh</code> - Get new access token using refresh token
+        </p>
+      </div>
+
+      <div id="section-4-2">
+        <h3>4.2 Team Members Endpoints</h3>
+        <p><strong>Base Path</strong>: <code>/api/team-members</code></p>
+
+        <p><span class="method method-get">GET</span> <code>/</code> - List all team members for current user</p>
+        <p><span class="method method-post">POST</span> <code>/</code> - Create new team member</p>
+        <pre><code>{
+  "name": "Sarah Smith",
+  "phone": "+971501234567"
+}</code></pre>
+        <p><span class="method method-put">PUT</span> <code>/:id</code> - Update team member details</p>
+        <p><span class="method method-delete">DELETE</span> <code>/:id</code> - Delete team member</p>
+      </div>
+
+      <div id="section-4-3">
+        <h3>4.3 Meetings Endpoints</h3>
+        <p><strong>Base Path</strong>: <code>/api/meetings</code></p>
+
+        <p><span class="method method-get">GET</span> <code>/</code> - List all meetings with optional filters</p>
+        <p><span class="method method-post">POST</span> <code>/</code> - Create new meeting</p>
+        <pre><code>{
+  "title": "Weekly Team Sync",
+  "date": "2026-03-10T09:00:00.000Z",
+  "type": "parent",
+  "recurrence": {
+    "enabled": true,
+    "frequency": "weekly",
+    "dayOfWeek": 1
+  }
+}</code></pre>
+
+        <p>
+          <span class="method method-get">GET</span> <code>/:id</code> - Get meeting details with populated agenda
+          points
+        </p>
+        <p><span class="method method-put">PUT</span> <code>/:id</code> - Update meeting details</p>
+        <p>
+          <span class="method method-delete">DELETE</span> <code>/:id</code> - Delete meeting (cascades to delete agenda
+          points)
+        </p>
+
+        <p>
+          <span class="method method-get">GET</span> <code>/:parentId/followups</code> - List all follow-up meetings
+          under a parent
+        </p>
+        <p>
+          <span class="method method-post">POST</span> <code>/:parentId/followups</code> - Create next follow-up meeting
+          (auto-carries forward open tasks)
+        </p>
+
+        <p>
+          <span class="method method-get">GET</span> <code>/dashboard</code> - Get dashboard view with aggregated
+          meeting statistics
+        </p>
+      </div>
+
+      <div id="section-4-4">
+        <h3>4.4 Agenda Points Endpoints</h3>
+        <p><strong>Base Path</strong>: <code>/api/meetings/:meetingId/agenda</code></p>
+
+        <p><span class="method method-get">GET</span> <code>/</code> - List all agenda points for a meeting</p>
+        <p><span class="method method-post">POST</span> <code>/</code> - Create new agenda point</p>
+        <pre><code>{
+  "description": "Finalize hiring plan for engineering",
+  "responsiblePersonId": "65f8a1b2c3d4e5f6a7b8c9d1",
+  "notes": "Need 3 senior devs by Q2"
+}</code></pre>
+
+        <p><span class="method method-put">PUT</span> <code>/:agendaId</code> - Update agenda point</p>
+        <p><span class="method method-delete">DELETE</span> <code>/:agendaId</code> - Delete agenda point</p>
+        <p>
+          <span class="method method-patch">PATCH</span> <code>/:agendaId/status</code> - Toggle status (open/closed)
+        </p>
+        <p>
+          <span class="method method-post">POST</span> <code>/carry-forward</code> - Copy open agenda points from
+          another meeting
+        </p>
+      </div>
+
+      <div id="section-4-5">
+        <h3>4.5 Reminders Endpoints</h3>
+        <p><strong>Base Path</strong>: <code>/api/reminders</code></p>
+
+        <p>
+          <span class="method method-post">POST</span> <code>/send/:meetingId</code> - Manually trigger WhatsApp
+          reminders
+        </p>
+        <p>
+          <span class="method method-get">GET</span> <code>/preview/:meetingId</code> - Preview what reminders would be
+          sent
+        </p>
+      </div>
+    </div>
+
+    <hr>
+
+    <div id="section-5">
+      <h2>5. Key Business Logic</h2>
+
+      <h3>5.1 Carry Forward Logic</h3>
+      <p>
+        <strong>Trigger</strong>: When creating a new follow-up meeting via
+        <code>POST /api/meetings/:parentId/followups</code>
+      </p>
+      <pre><code>FUNCTION createFollowUpWithCarryForward(parentId, optionalDate):
+  
+  1. Validate parent meeting exists and type = 'parent'
+  
+  2. Find last follow-up:
+     lastFollowup = Meeting.findOne({
+       parentMeetingId: parentId,
+       type: 'followup'
+     }).sort({ followupSequence: -1 })
+  
+  3. Calculate new sequence:
+     newSequence = lastFollowup ? lastFollowup.followupSequence + 1 : 1
+  
+  4. Create new meeting document
+  
+  5. Find open tasks from last follow-up:
+     IF lastFollowup exists:
+       openTasks = AgendaPoint.find({
+         meetingId: lastFollowup._id,
+         status: 'open'
+       })
+  
+  6. Clone open tasks into new meeting with carriedForwardFromId reference</code></pre>
+
+      <h3>5.2 WhatsApp Reminder Flow</h3>
+      <p><strong>Trigger</strong>: Cron job runs daily at 8:00 AM</p>
+      <pre><code>FUNCTION sendDailyReminders():
+  
+  1. Find upcoming meetings for tomorrow
+  
+  2. For each meeting, find open agenda points with responsible persons
+  
+  3. Group tasks by responsible person
+  
+  4. For each person:
+     a. Build message string with list of tasks
+     b. Send via Meta WhatsApp Cloud API
+     c. Log result</code></pre>
+    </div>
+
+    <hr>
+
+    <div id="section-6">
+      <h2>6. Frontend Screen Map</h2>
+
+      <h4>Screen 1: Login / Register</h4>
+      <p>User authentication screens. On login, store JWT in memory and refresh token in httpOnly cookie.</p>
+
+      <h4>Screen 2: Dashboard</h4>
+      <p>
+        Overview of all meetings. Cards display title, date, and status. Visual indicators: Green badge for recurring,
+        checkmark for closed tasks, warning icon for open tasks.
+      </p>
+
+      <h4>Screen 3: Meeting Detail Page</h4>
+      <p>
+        Manage single meeting agenda. Inline form to add points. Drag-and-drop to reorder. Toggle status (open/closed).
+        "Send Reminders" button at top.
+      </p>
+
+      <h4>Screen 4: Parent Meeting &amp; Follow-ups</h4>
+      <p>
+        Hierarchical view. Accordion layout for follow-up sessions. Latest session expanded by default. "Schedule Next
+        Follow-up" button triggers carry-forward logic.
+      </p>
+
+      <h4>Screen 5: Team Members Page</h4>
+      <p>Directory of contacts. Simple table to add, edit, or delete team members.</p>
+    </div>
+
+    <hr>
+
+    <div id="section-7">
+      <h2>7. Project Folder Structure</h2>
+
+      <h3>Backend Structure</h3>
+      <pre><code>/backend
+├── /src
+│   ├── /config        # DB, Env, WhatsApp config
+│   ├── /models        # Mongoose schemas
+│   ├── /routes        # Express routes
+│   ├── /controllers   # Business logic
+│   ├── /services      # Shared services
+│   ├── /middleware    # Auth, Validation, Error handling
+│   ├── /jobs          # Cron jobs
+│   └── app.js         # App entry point
+└── .env</code></pre>
+
+      <h3>Frontend Structure</h3>
+      <pre><code>/frontend
+├── /app               # Next.js App Router pages
+│   ├── /login
+│   ├── /dashboard
+│   ├── /meetings
+│   └── /team
+├── /components        # React components
+│   ├── /ui            # Generic UI (Button, Card)
+│   └── /meetings      # Domain components
+├── /lib               # API client, utilities
+├── /hooks             # Custom React hooks
+└── /styles            # Global styles</code></pre>
+    </div>
+
+    <hr>
+
+    <div id="section-8">
+      <h2>8. Security Considerations</h2>
+      <ul>
+        <li><strong>Password Security</strong>: Bcrypt with 10 salt rounds.</li>
+        <li>
+          <strong>JWT Strategy</strong>: Access Token (15m lifetime) in memory, Refresh Token (7d lifetime) in httpOnly
+          cookie.
+        </li>
+        <li>
+          <strong>Data Isolation</strong>: All database queries must include <code>userId</code> to prevent data leakage
+          between tenants.
+        </li>
+        <li><strong>Input Validation</strong>: Joi or express-validator for all incoming request bodies.</li>
+        <li><strong>Rate Limiting</strong>: Implement on auth routes to prevent brute force.</li>
+        <li><strong>CORS</strong>: Restrict to frontend domain only.</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <div id="section-9">
+      <h2>9. Environment Variables</h2>
+      <pre><code>PORT=5000
+NODE_ENV=production
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=your-secret-key
+JWT_REFRESH_SECRET=your-refresh-key
+WHATSAPP_PHONE_NUMBER_ID=123456...
+WHATSAPP_ACCESS_TOKEN=EAAG...
+CLIENT_URL=https://meetflow.com</code></pre>
+    </div>
+
+    <hr>
+
+    <div id="section-10">
+      <h2>10. MVP Rollout Plan</h2>
+      <ul>
+        <li><strong>Phase 1 (Week 1-2)</strong>: Foundation. Auth, Team Members, Basic Meetings CRUD.</li>
+        <li><strong>Phase 2 (Week 3)</strong>: Agenda Management. Status tracking, Dashboard.</li>
+        <li><strong>Phase 3 (Week 4)</strong>: Advanced Logic. Recurring meetings, Carry-forward system.</li>
+        <li><strong>Phase 4 (Week 5)</strong>: Notifications. WhatsApp integration, Cron jobs.</li>
+        <li><strong>Phase 5 (Week 6)</strong>: Polish. UI refinement, Deployment.</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <div id="section-11">
+      <h2>11. Future Enhancements</h2>
+      <ul>
+        <li>Email notifications as an alternative to WhatsApp.</li>
+        <li>Rich text editor for meeting notes.</li>
+        <li>Calendar integration (Google/Outlook).</li>
+        <li>Multi-user collaboration on the same agenda.</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <p style="text-align: center; color: #999; font-size: 0.9em; margin-top: 50px">END OF DOCUMENT</p>
+  
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body></html>

@@ -32,7 +32,14 @@ app.use(hpp());
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://yourapp.railway.app'],
+    origin: function(origin, callback) {
+        // Allow all localhost origins, file:// (null), and Railway
+        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === 'null' || origin.includes('railway.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
@@ -56,20 +63,94 @@ if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
 
-// Database connection
+// Database connection — uses a persistent local DB folder so data survives restarts
+const path = require('path');
+const fs = require('fs');
+
 const connectDB = async () => {
     try {
         let dbUri = process.env.MONGODB_URI;
+
         if (!dbUri || dbUri.includes('localhost')) {
             const { MongoMemoryServer } = require('mongodb-memory-server');
-            const mongoServer = await MongoMemoryServer.create();
+
+            // Persist DB data so users/meetings survive server restarts
+            const dbPath = path.join(__dirname, '../../.mongo-test-db');
+            if (!fs.existsSync(dbPath)) fs.mkdirSync(dbPath, { recursive: true });
+
+            const mongoServer = await MongoMemoryServer.create({
+                instance: {
+                    dbPath,
+                    storageEngine: 'wiredTiger'
+                }
+            });
+
             dbUri = mongoServer.getUri();
-            console.log('✅ Using MongoDB Memory Server');
+            console.log('✅ Using persistent MongoDB (local storage)');
         }
+
         await mongoose.connect(dbUri);
         console.log('✅ Connected to MongoDB');
+
+        // Auto-seed if empty
+        const User = require('./models/User');
+        if (await User.countDocuments() === 0) {
+            console.log('🌱 Database is empty. Auto-seeding dummy data...');
+            const bcrypt = require('bcryptjs');
+            const Team = require('./models/Team');
+            const Meeting = require('./models/Meeting');
+            const Agenda = require('./models/Agenda');
+
+            const pwd = await bcrypt.hash('password123', 10);
+            const users = await User.insertMany([
+              { name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
+              { name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
+              { name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
+              { name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true }
+            ]);
+
+            const team1 = await Team.create({
+              name: 'Frontend Engineering', description: 'The team building the ActionMeet web app.', createdBy: users[0]._id,
+              members: [{ user: users[0]._id, role: 'admin', joinedAt: new Date(), isActive: true }, { user: users[1]._id, role: 'member', joinedAt: new Date(), isActive: true }]
+            });
+            
+            const team2 = await Team.create({
+              name: 'Executive Leadership', description: 'High-level strategy planning.', createdBy: users[2]._id,
+              members: [{ user: users[2]._id, role: 'admin', joinedAt: new Date(), isActive: true }, { user: users[0]._id, role: 'member', joinedAt: new Date(), isActive: true }]
+            });
+
+            const now = new Date();
+            const futureDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+            const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+            const m1 = await Meeting.create({
+              title: 'Weekly UI Sync', description: 'Sync on the latest dashboard redesign.', host: users[0]._id, team: team1._id,
+              participants: [{ user: users[1]._id, status: 'confirmed' }, { user: users[3]._id, status: 'invited' }],
+              scheduledFor: futureDate, meetingType: 'recurring', status: 'scheduled'
+            });
+
+            const m2 = await Meeting.create({
+              title: 'Q1 Kickoff Review', description: 'Past meeting to review Q1 metrics.', host: users[2]._id,
+              participants: [{ user: users[0]._id, status: 'attended' }],
+              scheduledFor: pastDate, meetingType: 'regular', status: 'completed'
+            });
+
+            const agendas = await Agenda.insertMany([
+              { meeting: m1._id, title: 'Finalize Dark Mode CSS', description: 'Check color palette.', status: 'open', responsiblePerson: { user: users[0]._id }, order: 1, createdBy: users[0]._id },
+              { meeting: m1._id, title: 'Add Member API Integration', description: 'Hook up modal.', status: 'open', responsiblePerson: { user: users[1]._id }, order: 2, createdBy: users[0]._id },
+              { meeting: m2._id, title: 'Review Revenue Numbers', description: 'Check MRR.', status: 'completed', responsiblePerson: { user: users[2]._id }, order: 1, createdBy: users[2]._id },
+              { meeting: m2._id, title: 'Investigate server crash', description: 'Port 3001.', status: 'open', responsiblePerson: { user: users[0]._id }, order: 2, createdBy: users[2]._id }
+            ]);
+
+            m1.agendaPoints = [agendas[0]._id, agendas[1]._id]; await m1.save();
+            m2.agendaPoints = [agendas[2]._id, agendas[3]._id]; await m2.save();
+
+            console.log('✅ Auto-seed complete. Login with alice@test.com / password123');
+        }
+
     } catch (err) {
         console.error('❌ MongoDB connection error:', err);
+        process.exit(1); 
     }
 };
 connectDB();

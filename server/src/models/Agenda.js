@@ -232,7 +232,7 @@ agendaSchema.methods.carryForward = function(newMeetingId) {
 };
 
 // Pre-save middleware to update order
-agendaSchema.pre('save', async function(next) {
+agendaSchema.pre('save', async function() {
     if (this.isNew && !this.order) {
         const lastAgenda = await this.constructor
             .findOne({ meeting: this.meeting })
@@ -240,7 +240,6 @@ agendaSchema.pre('save', async function(next) {
         
         this.order = lastAgenda ? lastAgenda.order + 1 : 1;
     }
-    next();
 });
 
 module.exports = mongoose.model('Agenda', agendaSchema);

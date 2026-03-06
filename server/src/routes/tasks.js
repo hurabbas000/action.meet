@@ -18,7 +18,11 @@ const authenticate = async (req, res, next) => {
     }
 };
 
-// Get user tasks
+/**
+ * @route   GET /api/tasks/my
+ * @desc    Fetch all agenda tasks assigned specifically to the authenticated user
+ * @access  Private
+ */
 router.get('/my', authenticate, async (req, res) => {
     try {
         const Agenda = require('../models/Agenda');

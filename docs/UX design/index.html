@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ActionMeet - Every Action. Every Meeting. Accounted For.</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--primary:#6C63FF;--primary-dark:#5A52E0;--primary-light:#EEF0FF;--accent:#FF6B6B;--success:#22C55E;--warning:#F59E0B;--danger:#EF4444;--info:#3B82F6;--bg:#0F0F1A;--bg2:#16162A;--bg3:#1E1E35;--card:#1E1E35;--border:#2D2D4E;--text:#E2E8F0;--text2:#94A3B8;--text3:#64748B;--sidebar-w:260px;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,.4)}
+[data-theme="light"]{--bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#F1F5F9;--card:#FFFFFF;--border:#E2E8F0;--text:#0F172A;--text2:#334155;--text3:#64748B;--shadow:0 4px 24px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#app{min-height:100vh}
+/* ── Layout ── */
+.layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.topbar{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(22,22,42,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);flex-shrink:0;z-index:10}
+[data-theme="light"] .topbar{background:rgba(255,255,255,0.8)}
+.topbar-title{font-size:20px;font-weight:700;color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:32px}
+.content-inner{max-width:1440px;margin:0 auto;width:100%}
+/* ── Sidebar ── */
+.brand{padding:20px 20px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+.brand-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700}
+.brand-name{font-size:17px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-tag{font-size:10px;color:var(--text3)}
+.user-card{padding:16px;margin:12px;background:var(--bg3);border-radius:var(--radius);display:flex;align-items:center;gap:10px}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;color:var(--text)}
+.user-role{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.nav{padding:8px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--text2);font-size:13.5px;font-weight:500;transition:.2s;position:relative;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--primary-light);color:var(--primary)}
+.nav-item.active i{color:var(--primary)}
+.nav-item i{width:18px;text-align:center;font-size:15px}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.nav-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:12px 12px 4px;font-weight:600}
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border)}
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{background:transparent;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;color:var(--text3);transition:.2s;font-size:13px}
+.btn-icon:hover{background:var(--bg3);color:var(--text)}
+.btn-icon.danger:hover{background:rgba(239,68,68,.15);color:var(--danger)}
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.meeting-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:.2s}
+.meeting-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow)}
+.meeting-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.meeting-meta{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text3);flex-wrap:wrap}
+.meeting-meta i{color:var(--primary)}
+/* ── Grid ── */
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:32px}
+/* ── Stat Card ── */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;align-items:center;gap:18px;box-shadow:var(--shadow);transition:.2s}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--primary)}
+.stat-icon{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.stat-icon.purple{background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(108,99,255,.05));color:var(--primary)}
+.stat-icon.red{background:linear-gradient(135deg,rgba(239,68,68,.2),rgba(239,68,68,.05));color:var(--danger)}
+.stat-icon.green{background:linear-gradient(135deg,rgba(34,197,94,.2),rgba(34,197,94,.05));color:var(--success)}
+.stat-icon.orange{background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05));color:var(--warning)}
+.stat-val{font-size:26px;font-weight:800;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text3);margin-top:2px}
+/* ── Status badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.badge.upcoming{background:rgba(59,130,246,.15);color:#60A5FA}
+.badge.past{background:rgba(100,116,139,.15);color:#94A3B8}
+.badge.recurring{background:rgba(108,99,255,.15);color:var(--primary)}
+.badge.cancelled{background:rgba(239,68,68,.15);color:var(--danger)}
+.badge.host{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge.participant{background:rgba(34,197,94,.15);color:var(--success)}
+.badge.open{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge.closed{background:rgba(34,197,94,.15);color:var(--success)}
+/* ── Progress ── */
+.progress-bar{height:6px;background:var(--bg3);border-radius:3px;margin:12px 0 6px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:3px;transition:.3s}
+.progress-row{display:flex;justify-content:space-between;font-size:11px;color:var(--text3)}
+/* ── Filters ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:.2s}
+.filter-btn:hover{border-color:var(--primary);color:var(--primary)}
+.filter-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+/* ── Agenda ── */
+.agenda-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.agenda-item:last-child{border-bottom:none}
+.check-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;flex-shrink:0;margin-top:1px}
+.check-box:hover{border-color:var(--primary)}
+.check-box.checked{background:var(--primary);border-color:var(--primary);color:#fff;font-size:12px}
+.agenda-text{font-size:14px;color:var(--text);font-weight:500;flex:1}
+.agenda-text.done{text-decoration:line-through;color:var(--text3)}
+.agenda-note{font-size:12px;color:var(--text3);margin-top:4px}
+.agenda-assignee{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);margin-top:6px}
+.mini-avatar{width:20px;height:20px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+/* ── Tasks ── */
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:.2s}
+.task-card:hover{border-color:var(--border)}
+.task-card.done .agenda-text{text-decoration:line-through;color:var(--text3)}
+.task-body{flex:1}
+.task-title{font-size:13.5px;font-weight:500;color:var(--text)}
+.task-title.done{text-decoration:line-through;color:var(--text3)}
+.task-sub{font-size:11px;color:var(--text3);margin-top:4px}
+/* ── Team ── */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;transition:.2s}
+.team-card:hover{border-color:var(--primary)}
+.team-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin:0 auto 12px}
+.team-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.team-email{font-size:11px;color:var(--text3);word-break:break-all}
+/* ── Notif ── */
+.notif-card{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+.notif-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.notif-icon.info{background:rgba(59,130,246,.15);color:#60A5FA}
+.notif-icon.success{background:rgba(34,197,94,.15);color:var(--success)}
+.notif-icon.warning{background:rgba(245,158,11,.15);color:var(--warning)}
+.notif-text{font-size:13px;color:var(--text);margin-bottom:4px}
+.notif-time{font-size:11px;color:var(--text3)}
+.notif-card.unread{background:rgba(108,99,255,.05);border-radius:8px;padding:12px}
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal-header{padding:20px 24px 0;display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:18px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+/* ── Form ── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13.5px;font-family:inherit;transition:.2s}
+.form-input:focus{outline:none;border-color:var(--primary)}
+.form-input::placeholder{color:var(--text3)}
+textarea.form-input{resize:vertical;min-height:80px}
+/* ── Search ── */
+.search-box{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:16px}
+.search-box i{color:var(--text3)}
+.search-box input{background:none;border:none;color:var(--text);font-size:13px;flex:1;font-family:inherit}
+.search-box input:focus{outline:none}
+/* ── Participant list in create meeting modal ── */
+.user-search-results{max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px}
+.user-result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:.15s}
+.user-result-item:hover{background:var(--bg3)}
+.user-result-item.selected{background:var(--primary-light)}
+.user-result-name{font-size:13px;font-weight:600;color:var(--text)}
+.user-result-email{font-size:11px;color:var(--text3)}
+.selected-participants{display:flex;flex-wrap:wrap;gap:6px;min-height:28px;margin-top:8px}
+.participant-chip{display:flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600}
+.participant-chip button{background:none;border:none;cursor:pointer;color:var(--primary);font-size:14px;padding:0;line-height:1}
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.empty-sub{font-size:13px}
+/* ── FAB ── */
+.fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 24px rgba(108,99,255,.5);transition:.2s;z-index:100}
+.fab:hover{transform:scale(1.1);box-shadow:0 8px 32px rgba(108,99,255,.7)}
+/* ── Toast ── */
+.toasts{position:fixed;top:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;min-width:260px;box-shadow:var(--shadow);animation:slideIn .3s ease}
+.toast.success i{color:var(--success)}
+.toast.error i{color:var(--danger)}
+.toast.warning i{color:var(--warning)}
+.toast.info i{color:var(--info)}
+.toast span{font-size:13px;color:var(--text)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* ── Login ── */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:400px;box-shadow:var(--shadow)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-logo .icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 14px}
+.login-title{font-size:26px;font-weight:800;color:var(--text);text-align:center}
+.login-sub{font-size:13px;color:var(--text3);text-align:center;margin-top:4px}
+.tab-btns{display:flex;background:var(--bg3);border-radius:10px;padding:3px;margin-bottom:24px;gap:3px}
+.tab-btn{flex:1;padding:8px;border:none;background:none;color:var(--text2);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.tab-btn.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.error-msg{color:var(--danger);font-size:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 12px;margin-bottom:12px}
+/* ── Section header ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:16px;font-weight:700;color:var(--text)}
+/* ── Back button ── */
+.back-btn{display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;padding:6px 0;margin-bottom:16px;background:none;border:none}
+.back-btn:hover{color:var(--text)}
+/* ── Meeting detail ── */
+.meeting-detail-header{margin-bottom:24px}
+.meeting-detail-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px}
+.participants-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* ── Collapsible ── */
+.collapsible-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg3);border-radius:10px;cursor:pointer;margin-bottom:8px}
+.collapsible-body{padding:0 4px}
+.chevron{transition:.2s}
+.collapsed .chevron{transform:rotate(-90deg)}
+/* ── Settings Toggles ── */
+.toggle-switch{position:relative;display:inline-block;width:40px;height:24px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:var(--bg3);transition:.3s;border-radius:24px;border:1px solid var(--border)}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background-color:var(--text2);transition:.3s;border-radius:50%}
+input:checked + .slider{background-color:var(--primary);border-color:var(--primary)}
+input:checked + .slider:before{transform:translateX(16px);background-color:#fff}
+/* ── Compact Mode ── */
+body.compact-mode .card,body.compact-mode .meeting-card{padding:12px 16px}
+body.compact-mode .stat-card{padding:14px}
+body.compact-mode .agenda-item{padding:8px 0}
+body.compact-mode .nav-item{padding:8px 10px;margin-bottom:0}
+body.compact-mode .content{padding:18px 22px}
+/* ── Responsive ── */
+@media(max-width:1024px){
+  .grid2{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){.sidebar{display:none}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+const API='http://localhost:3001/api';
+// ─── State ───────────────────────────────────────
+const S={
+  user:null,token:null,view:'login',
+  meetings:[],team:[],myTasks:[],notifs:[],
+  sel:null,filter:'all',loginTab:'login',
+  searchParticipants:[],selectedParticipants:[],
+  settings:{theme:'dark',compactMode:false},
+  init(){
+    const set=localStorage.getItem('am_settings');
+    if(set)this.settings={...this.settings,...JSON.parse(set)};
+    this.applySettings();
+    this.token=localStorage.getItem('am_tk');
+    const u=localStorage.getItem('am_u');
+    if(this.token&&u){this.user=JSON.parse(u);this.view='dashboard';}
+    render();
+    if(this.token)this.loadAll();
+  },
+  applySettings(){
+    document.documentElement.setAttribute('data-theme',this.settings.theme);
+    if(this.settings.compactMode)document.body.classList.add('compact-mode');
+    else document.body.classList.remove('compact-mode');
+    localStorage.setItem('am_settings',JSON.stringify(this.settings));
+  },
+  async loadAll(){
+    await this.fetchMeetings();
+    render();
+    this.fetchTeam();
+    this.fetchMyTasks();
+  },
+  async fetchMeetings(){
+    try{const r=await api('/meetings');
+      if(r.success)this.meetings=(r.data.meetings||[]).map(normM);}catch(e){}
+  },
+  async fetchTeam(){
+    try{const r=await api('/team');
+      if(r.success){const m={};
+        this.teamRaw=r.data.teams||[];
+        this.teamRaw.forEach(t=>(t.members||[]).forEach(mb=>{
+          if(mb.user&&!m[mb.user._id])m[mb.user._id]={
+            id:mb.user._id,name:mb.user.name||mb.user.email,
+            email:mb.user.email,phone:mb.user.phone||'',
+            role:mb.role||'member',av:(mb.user.name||'U')[0].toUpperCase(),
+            teamId:t._id,isAdmin:t.createdBy._id===S.user?._id||mb.role==='admin'
+          };
+        }));
+        this.team=Object.values(m);}
+    }catch(e){}
+  },
+  async fetchMyTasks(){
+    try{const r=await api('/tasks/my');
+      if(r.success)this.myTasks=(r.data.tasks||[]).map(t=>({
+        id:t._id,text:t.title||t.description||'Task',
+        note:t.description||'',status:t.status==='completed'?'closed':'open',
+        meetingId:t.meeting?._id||t.meeting,
+        meetingTitle:t.meeting?.title||'Meeting',
+        meetingDate:t.meeting?.scheduledFor?fmtDate(t.meeting.scheduledFor):''
+      }));}catch(e){}
+  },
+  getMeeting(id){return this.meetings.find(m=>m.id===id||m._id===id);},
+  logout(){
+    this.user=null;this.token=null;this.meetings=[];this.team=[];this.myTasks=[];
+    localStorage.removeItem('am_tk');localStorage.removeItem('am_u');
+    this.view='login';render();
+  },
+  getTeam(id){return this.teamRaw.find(t=>t._id===id);},
+  teamRaw:[]
+};
+// ─── Helpers ─────────────────────────────────────
+async function api(path,opts={}){
+  const h={'Content-Type':'application/json'};
+  if(S.token)h['Authorization']=`Bearer ${S.token}`;
+  const r=await fetch(API+path,{...opts,headers:{...h,...(opts.headers||{})}});
+  return r.json();
+}
+function normM(m){
+  const now=new Date();const d=m.scheduledFor?new Date(m.scheduledFor):null;
+  let st=m.status||'scheduled';
+  if(['scheduled','in-progress'].includes(st))st=d&&d>now?'upcoming':'past';
+  else if(st==='completed')st='past';
+  const isHost=m.host&&(m.host._id||m.host)===S.user?._id;
+  return{...m,id:m._id||m.id,date:d?fmtDate(d):'',status:st,
+    role:isHost?'host':'participant',
+    type:m.meetingType==='recurring'?'recurring':'single',
+    agendaPoints:(m.agendaPoints||m.agenda||[]).map(a=>({
+      id:a._id||a.id,_id:a._id||a.id,
+      text:a.title||a.text||a.description||'',
+      note:a.note||a.description||'',
+      status:a.status==='completed'?'closed':a.status||'open',
+      assignedTo:a.responsiblePerson?.user||a.assignedTo||null
+    }))};
+}
+function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function toast(msg,type='info'){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');t.className=`toast ${type}`;
+  const ic={success:'fa-check-circle',error:'fa-times-circle',warning:'fa-exclamation-triangle',info:'fa-info-circle'};
+  t.innerHTML=`<i class="fas ${ic[type]||ic.info}"></i><span>${msg}</span>`;
+  c.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(120px)';setTimeout(()=>t.remove(),300);},3000);
+}
+function closeModal(){document.querySelector('.modal-overlay')?.remove();}
+// ─── Render ──────────────────────────────────────
+function render(){
+  document.getElementById('app').innerHTML=S.view==='login'?renderLogin():renderLayout();
+  if(S.view==='login')hookLogin();else hookApp();
+}
+// ─── Login ───────────────────────────────────────
+function renderLogin(){
+  const isLogin=S.loginTab==='login';
+  return`<div class="login-page"><div class="login-card">
+  <div class="login-logo"><div class="icon">AM</div>
+  <div class="login-title">ActionMeet</div>
+  <div class="login-sub">Every Action. Every Meeting. Accounted For.</div></div>
+  <div class="tab-btns">
+    <button class="tab-btn ${isLogin?'active':''}" id="tabLogin">Sign In</button>
+    <button class="tab-btn ${!isLogin?'active':''}" id="tabReg">Register</button>
+  </div>
+  <div id="authErr" class="error-msg" style="display:none"></div>
+  ${isLogin?`
+  <form id="authForm">
+    <div class="form-group"><label class="form-label">Email</label>
+      <input class="form-input" type="email" name="email" placeholder="your@email.com" required></div>
+    <div class="form-group"><label class="form-label">Password</label>
+      <input class="form-input" type="password" name="password" placeholder="••••••" required></div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="authBtn">Sign In</button>
+  </form>`:`
+  <form id="authForm">
+    <div class="form-group"><label class="form-label">Full Name</label>
+      <input class="form-input" type="text" name="name" placeholder="John Doe" required></div>
+    <div class="form-group"><label class="form-label">Email</label>
+      <input class="form-input" type="email" name="email" placeholder="your@email.com" required></div>
+    <div class="form-group"><label class="form-label">Password</label>
+      <input class="form-input" type="password" name="password" placeholder="Min 6 characters" required></div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="authBtn">Create Account</button>
+  </form>`}
+</div></div>`;
+}
+function hookLogin(){
+  document.getElementById('tabLogin').onclick=()=>{S.loginTab='login';render();};
+  document.getElementById('tabReg').onclick=()=>{S.loginTab='register';render();};
+  document.getElementById('authForm').onsubmit=async e=>{
+    e.preventDefault();
+    const btn=document.getElementById('authBtn');
+    const err=document.getElementById('authErr');
+    err.style.display='none';btn.disabled=true;
+    btn.textContent=S.loginTab==='login'?'Signing in…':'Creating…';
+    const fd=new FormData(e.target);
+    const body={email:fd.get('email'),password:fd.get('password')};
+    if(S.loginTab==='register')body.name=fd.get('name');
+    try{
+      const r=await api(`/auth/${S.loginTab==='login'?'login':'register'}`,{method:'POST',body:JSON.stringify(body)});
+      if(r.success){
+        if(S.loginTab==='register'){toast('Account created! Sign in now.','success');S.loginTab='login';render();return;}
+        S.token=r.data.token;
+        S.user={...r.data.user,av:(r.data.user.name||'U')[0].toUpperCase()};
+        localStorage.setItem('am_tk',S.token);
+        localStorage.setItem('am_u',JSON.stringify(S.user));
+        S.view='dashboard';render();S.loadAll();
+      }else{
+        const msg=r.errors?r.errors.map(x=>x.msg).join(', '):r.message||'Failed';
+        err.textContent=msg;err.style.display='block';
+        btn.disabled=false;btn.textContent=S.loginTab==='login'?'Sign In':'Create Account';
+      }
+    }catch{
+      err.textContent='Cannot connect to server. Make sure the backend is running on port 3001.';
+      err.style.display='block';btn.disabled=false;
+      btn.textContent=S.loginTab==='login'?'Sign In':'Create Account';
+    }
+  };
+}
+// ─── Layout ──────────────────────────────────────
+function renderLayout(){
+  const views={dashboard:'Dashboard',meetings:'All Meetings',mytasks:'My Tasks',recurring:'Recurring',notifications:'Notifications',team:'Team',settings:'Settings',detail:'Meeting Detail'};
+  const notifCount=S.notifs.filter(n=>!n.read).length;
+  return`<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-icon">AM</div><div><div class="brand-name">ActionMeet</div><div class="brand-tag">v1.0</div></div></div>
+    <div class="user-card">
+      <div class="avatar">${S.user.av||'U'}</div>
+      <div><div class="user-name">${S.user.name||S.user.email}</div>
+      <div class="user-role">${S.user.role||'member'}</div></div>
+    </div>
+    <nav class="nav">
+      ${navI('dashboard','fa-home','Dashboard')}
+      ${navI('meetings','fa-calendar-alt','All Meetings')}
+      ${navI('mytasks','fa-check-square','My Tasks')}
+      ${navI('recurring','fa-sync-alt','Recurring')}
+      ${navI('notifications','fa-bell','Notifications',notifCount)}
+      ${navI('team','fa-users','Team')}
+      <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
+        ${navI('settings','fa-cog','Settings')}
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="width:100%"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1 class="topbar-title">${views[S.view]||'ActionMeet'}</h1></div>
+    <div class="content"><div class="content-inner" id="viewContent">${renderView()}</div></div>
+  </div>
+</div>
+${S.view==='dashboard'||S.view==='meetings'||S.view==='team'?'<button class="fab" id="fabBtn"><i class="fas fa-plus"></i></button>':''}`;
+}
+function navI(v,ic,label,badge=0){
+  const b=badge>0?`<span class="nav-badge">${badge}</span>`:'';
+  return`<div class="nav-item ${S.view===v?'active':''}" data-view="${v}"><i class="fas ${ic}"></i><span>${label}</span>${b}</div>`;
+}
+function hookApp(){
+  document.querySelectorAll('.nav-item[data-view]').forEach(el=>el.onclick=async()=>{
+    S.view=el.dataset.view;render();
+    if(S.view==='mytasks'){await S.fetchMyTasks();render();}
+    if(S.view==='team'){await S.fetchTeam();render();}
+    if(S.view==='dashboard'){await S.fetchMeetings();render();}
+  });
+  document.getElementById('logoutBtn')?.addEventListener('click',()=>S.logout());
+  document.getElementById('fabBtn')?.addEventListener('click',()=>{
+    if(S.view==='team') showCreateTeamModal();
+    else showNewMeetingModal();
+  });
+  document.querySelectorAll('.filter-btn').forEach(b=>b.onclick=()=>{S.filter=b.dataset.f;render();});
+}
+// ─── Views ───────────────────────────────────────
+function renderView(){
+  switch(S.view){
+    case'dashboard':return renderDashboard();
+    case'meetings':return renderMeetingsPage();
+    case'mytasks':return renderMyTasks();
+    case'recurring':return renderRecurring();
+    case'notifications':return renderNotifs();
+    case'team':return renderTeam();
+    case'settings':return renderSettings();
+    case'detail':return renderDetail();
+    default:return'';
+  }
+}
+// Dashboard
+function renderDashboard(){
+  const all=S.meetings;const ap=all.flatMap(m=>m.agendaPoints||[]);
+  const open=ap.filter(a=>a.status==='open').length;
+  const closed=ap.filter(a=>a.status!=='open').length;
+  const upcoming=all.filter(m=>m.status==='upcoming').length;
+  const filtered=filterList(all,S.filter);
+  
+  const firstName=(S.user.name||S.user.email).split(' ')[0];
+  const greeting=new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening';
+
+  return`
+  <div style="margin-bottom:32px">
+    <h1 style="font-size:28px;font-weight:800;color:var(--text);margin-bottom:8px">${greeting}, ${firstName}! 👋</h1>
+    <p style="color:var(--text3);font-size:14px">Here is what's happening with your meetings and tasks today.</p>
+  </div>
+  
+  <div class="stats-grid">
+    ${stat('purple','fa-calendar-alt',all.length,'Total Meetings')}
+    ${stat('orange','fa-clock',upcoming,'Upcoming')}
+    ${stat('red','fa-tasks',open,'Open Tasks')}
+    ${stat('green','fa-check-circle',closed,'Closed Tasks')}
+  </div>
+  
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;margin-top:40px">
+    <h2 style="font-size:18px;font-weight:700">Recent Meetings</h2>
+    <div class="filter-row" style="margin-bottom:0">
+      ${['all','upcoming','past','recurring'].map(f=>`<button class="filter-btn ${S.filter===f?'active':''}" data-f="${f}">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}
+    </div>
+  </div>
+  
+  <div class="grid2">
+    ${filtered.length?filtered.map(renderMCard).join(''):empty('fa-calendar-plus','No meetings yet','Click the + button to create your first meeting')}
+  </div>`;
+}
+function stat(col,ic,val,label){
+  return`<div class="stat-card"><div class="stat-icon ${col}"><i class="fas ${ic}"></i></div><div><div class="stat-val">${val}</div><div class="stat-label">${label}</div></div></div>`;
+}
+function filterList(list,f){
+  if(f==='all')return list;
+  if(f==='recurring')return list.filter(m=>m.type==='recurring');
+  if(f==='upcoming')return list.filter(m=>m.status==='upcoming');
+  if(f==='past')return list.filter(m=>m.status==='past');
+  return list;
+}
+function renderMCard(m){
+  const ap=m.agendaPoints||[];
+  const open=ap.filter(a=>a.status==='open').length;
+  const closed=ap.filter(a=>a.status!=='open').length;
+  const pct=ap.length?Math.round(closed/ap.length*100):0;
+  const parts=m.participants||[];
+  const isHost=m.role==='host';
+  return`<div class="meeting-card" onclick="openDetail('${m.id}')">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+    <div style="flex:1">
+      <div class="meeting-title">${m.title}</div>
+      <div class="meeting-meta">
+        <span><i class="fas fa-calendar"></i> ${m.date}</span>
+        <span><i class="fas fa-users"></i> ${parts.length} participant${parts.length!==1?'s':''}</span>
+        ${isHost?'<span class="badge host">Host</span>':'<span class="badge participant">Participant</span>'}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <span class="badge ${m.status}">${m.status}</span>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  <div class="progress-row"><span><i class="fas fa-circle" style="color:var(--warning);font-size:8px"></i> ${open} open</span><span><i class="fas fa-circle" style="color:var(--success);font-size:8px"></i> ${closed} closed</span><span>${pct}%</span></div>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openDetail('${m.id}')"><i class="fas fa-external-link-alt"></i> Open</button>
+    ${isHost?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteMeeting('${m.id}','${m.title.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>`:''}
+  </div>
+  </div>`;
+}
+// All Meetings page
+function renderMeetingsPage(){
+  return`<div class="filter-row">${['all','upcoming','past','recurring'].map(f=>`<button class="filter-btn ${S.filter===f?'active':''}" data-f="${f}">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}</div>
+  <div class="grid2">${filterList(S.meetings,S.filter).map(renderMCard).join('')||empty('fa-calendar-times','No meetings','Create your first meeting with the + button')}</div>`;
+}
+// My Tasks
+function renderMyTasks(){
+  const tasks=S.myTasks.length?S.myTasks:S.meetings.flatMap(m=>(m.agendaPoints||[]).filter(a=>a.status==='open').map(a=>({...a,meetingId:m.id,meetingTitle:m.title,meetingDate:m.date})));
+  const open=tasks.filter(t=>t.status==='open').length;
+  const closed=tasks.filter(t=>t.status!=='open').length;
+  if(!tasks.length)return`<div style="margin-bottom:16px"><h2 style="font-size:18px;font-weight:700">My Tasks</h2></div>${empty('fa-check-square','No tasks assigned','Your agenda items will appear here')}`;
+  return`<div style="margin-bottom:20px">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">My Tasks</h2>
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <span class="badge open">${open} Open</span><span class="badge closed">${closed} Closed</span>
+  </div></div>
+  <div class="search-box"><i class="fas fa-search"></i><input type="text" placeholder="Search tasks…" id="taskQ" oninput="filterTasks()"></div>
+  <div id="tasksList">${tasks.map(t=>{
+    const done=t.status==='closed'||t.status==='completed';
+    return`<div class="task-card" data-text="${(t.text||'').toLowerCase()}" data-status="${done?'closed':'open'}">
+      <div class="check-box ${done?'checked':''}" onclick="toggleTask('${t.meetingId||''}','${t.id||t._id}')">
+        ${done?'<i class="fas fa-check"></i>':''}
+      </div>
+      <div class="task-body">
+        <div class="task-title ${done?'done':''}">${t.text}</div>
+        <div class="task-sub"><i class="fas fa-calendar" style="color:var(--primary)"></i> ${t.meetingTitle} · ${t.meetingDate}</div>
+      </div>
+      <span class="badge ${done?'closed':'open'}">${done?'closed':'open'}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+function filterTasks(){
+  const q=(document.getElementById('taskQ')?.value||'').toLowerCase();
+  document.querySelectorAll('.task-card').forEach(c=>{
+    const txt=c.dataset.text||'';c.style.display=txt.includes(q)?'flex':'none';
+  });
+}
+// Recurring
+function renderRecurring(){
+  const rec=S.meetings.filter(m=>m.type==='recurring');
+  if(!rec.length)return empty('fa-sync-alt','No recurring meetings','Create a recurring meeting from the + button');
+  return rec.map(m=>`<div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div><span class="badge recurring"><i class="fas fa-sync-alt"></i> Recurring</span></div>
+      <button class="btn btn-ghost btn-sm" onclick="openDetail('${m.id}')">Open <i class="fas fa-arrow-right"></i></button>
+    </div>
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:6px">${m.title}</h3>
+    <p style="font-size:13px;color:var(--text3)">${m.description||'No description'}</p>
+    <div class="meeting-meta" style="margin-top:10px"><span><i class="fas fa-calendar"></i> ${m.date}</span></div>
+  </div>`).join('');
+}
+// Notifications
+function renderNotifs(){
+  S.notifs.forEach(n=>n.read=true);
+  if(!S.notifs.length)return empty('fa-bell','No notifications','Actions you take will appear here');
+  return`<div class="section-header" style="margin-bottom:16px"><h2 class="section-title">Notifications</h2></div>
+  ${S.notifs.map(n=>`<div class="notif-card ${n.read?'':'unread'}">
+    <div class="notif-icon ${n.type||'info'}"><i class="fas fa-bell"></i></div>
+    <div><div class="notif-text">${n.text}</div><div class="notif-time">${n.time}</div></div>
+  </div>`).join('')}`;
+}
+// Team
+function renderTeam(){
+  if(!S.teamRaw.length)return empty('fa-users','No teams yet','Click the + button below to create your first team and add members.');
+  
+  return `<div class="section-header" style="margin-bottom:24px">
+    <h2 class="section-title">Your Teams</h2>
+    <button class="btn btn-primary btn-sm" onclick="showCreateTeamModal()"><i class="fas fa-plus"></i> Create Team</button>
+  </div>
+  ${S.teamRaw.map(t=>{
+    const isAdmin=t.createdBy._id===S.user?._id||t.members.some(m=>m.user._id===S.user?._id&&m.role==='admin');
+    return`
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px">
+        <div>
+          <h3 style="font-size:18px;font-weight:700">${t.name}</h3>
+          ${t.description?`<p style="font-size:12px;color:var(--text3);margin-top:4px">${t.description}</p>`:''}
+        </div>
+        ${isAdmin?`<button class="btn btn-primary btn-sm" onclick="showAddMemberModal('${t._id}')"><i class="fas fa-user-plus"></i> Add Member</button>`:''}
+      </div>
+      <div class="team-grid">
+        ${(t.members||[]).map(m=>{
+          const u=m.user;if(!u)return'';
+          return`<div class="team-card">
+            <div class="team-avatar">${(u.name||u.email||'U')[0].toUpperCase()}</div>
+            <div class="team-name">${u.name||u.email}</div>
+            <div class="team-email">${u.email}</div>
+            <span class="badge ${m.role==='admin'?'host':'participant'}" style="margin-top:8px">${m.role}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `}).join('')}`;
+}
+// Settings
+function renderSettings(){
+  return`<div class="section-header"><h2 class="section-title">Settings & Preferences</h2></div>
+  <div class="card" style="max-width:600px;margin-bottom:24px">
+    <h3 style="margin-bottom:16px;font-size:15px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:12px"><i class="fas fa-paint-brush" style="color:var(--primary);margin-right:6px"></i> Appearance</h3>
+    
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px">Theme Mode</div>
+        <div style="font-size:12px;color:var(--text3)">Choose your preferred app appearance</div>
+      </div>
+      <div style="display:flex;gap:8px;background:var(--bg3);padding:4px;border-radius:10px">
+        <button class="btn ${S.settings.theme!=='light'?'btn-primary':'btn-ghost'}" style="${S.settings.theme!=='light'?'':'border-color:transparent'}" onclick="setTheme('dark')"><i class="fas fa-moon"></i> Dark</button>
+        <button class="btn ${S.settings.theme==='light'?'btn-primary':'btn-ghost'}" style="${S.settings.theme==='light'?'':'border-color:transparent'}" onclick="setTheme('light')"><i class="fas fa-sun"></i> Light</button>
+      </div>
+    </div>
+    
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:var(--text);margin-bottom:2px">Compact Layout</div>
+        <div style="font-size:12px;color:var(--text3)">Reduce padding to fit more content on screen</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" ${S.settings.compactMode?'checked':''} onchange="toggleCompact(this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>`;
+}
+function setTheme(t) { S.settings.theme=t; S.applySettings(); render(); }
+function toggleCompact(b) { S.settings.compactMode=b; S.applySettings(); render(); }
+
+// Meeting Detail
+async function openDetail(id){
+  S.sel=id;S.view='detail';render();
+  try{
+    const r=await api(`/agenda/meeting/${id}`);
+    if(r.success){
+      const m=S.getMeeting(id);
+      if(m)m.agendaPoints=(r.data.agendaItems||[]).map(a=>({
+        id:a._id,_id:a._id,text:a.title||a.description||'',
+        note:a.description||'',status:a.status==='completed'?'closed':'open',
+        assignedTo:a.responsiblePerson?.user||null
+      }));
+      render();
+    }
+  }catch(e){}
+}
+function renderDetail(){
+  const m=S.getMeeting(S.sel);
+  if(!m)return`<button class="back-btn" onclick="S.view='dashboard';render()"><i class="fas fa-arrow-left"></i> Back</button><p>Meeting not found.</p>`;
+  const ap=m.agendaPoints||[];
+  const open=ap.filter(a=>a.status==='open').length;
+  const closed=ap.filter(a=>a.status!=='open').length;
+  const pct=ap.length?Math.round(closed/ap.length*100):0;
+  const parts=m.participants||[];
+  const isHost=m.role==='host';
+  return`
+  <button class="back-btn" onclick="S.view='dashboard';render()"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
+  <div class="meeting-detail-header">
+    <h1 class="meeting-detail-title">${m.title}</h1>
+    <div class="meeting-meta" style="margin-bottom:12px">
+      <span><i class="fas fa-calendar"></i> ${m.date}</span>
+      <span class="badge ${m.status}">${m.status}</span>
+      <span class="badge ${m.role==='host'?'host':'participant'}">${m.role}</span>
+    </div>
+    ${m.description?`<p style="font-size:13px;color:var(--text3);margin-bottom:16px">${m.description}</p>`:''}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <span style="font-size:12px;color:var(--text3)">Participants:</span>
+      <div class="participants-row">
+        ${parts.slice(0,6).map(p=>`<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2)"><div class="mini-avatar">${(p.user?.name||p.name||'U')[0].toUpperCase()}</div>${p.user?.name||p.name||'Unknown'}</div>`).join('')}
+        ${parts.length>6?`<span style="font-size:12px;color:var(--text3)">+${parts.length-6} more</span>`:''}
+      </div>
+    </div>
+    <div class="progress-bar" style="margin-bottom:4px"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="progress-row" style="margin-bottom:16px">
+      <span>${open} open tasks</span><span>${closed} closed</span><span>${pct}% complete</span>
+    </div>
+  </div>
+  <div class="section-header">
+    <h2 class="section-title">Agenda Points</h2>
+    <button class="btn btn-primary btn-sm" onclick="showAddAgendaModal('${m.id}')"><i class="fas fa-plus"></i> Add Point</button>
+  </div>
+  <div class="card">
+    ${ap.length?ap.map(a=>renderAgendaLine(m.id,a,isHost)).join(''):
+      `<div class="empty-state" style="padding:30px"><div class="empty-icon">📋</div><div class="empty-title">No agenda points</div><div class="empty-sub">Add the first agenda point above</div></div>`}
+  </div>`;
+}
+function renderAgendaLine(mid,a,isHost){
+  const done=a.status==='closed'||a.status==='completed';
+  const name=a.assignedTo?.name||'';
+  return`<div class="agenda-item">
+    <div class="check-box ${done?'checked':''}" onclick="toggleAgenda('${mid}','${a.id||a._id}')">
+      ${done?'<i class="fas fa-check"></i>':''}
+    </div>
+    <div style="flex:1">
+      <div class="agenda-text ${done?'done':''}">${a.text}</div>
+      ${a.note&&a.note!==a.text?`<div class="agenda-note">${a.note}</div>`:''}
+      <div class="agenda-assignee">
+        ${name?`<div class="mini-avatar">${name[0].toUpperCase()}</div><span>${name}</span>`:'<span style="color:var(--text3)">Unassigned</span>'}
+        <span class="badge ${done?'closed':'open'}" style="margin-left:8px">${done?'closed':'open'}</span>
+      </div>
+    </div>
+    ${isHost?`<button class="btn-icon danger" onclick="deleteAgenda('${mid}','${a.id||a._id}')"><i class="fas fa-trash"></i></button>`:''}
+  </div>`;
+}
+function empty(ic,title,sub){
+  return`<div class="empty-state"><div class="empty-icon"><i class="fas ${ic}"></i></div><div class="empty-title">${title}</div><div class="empty-sub">${sub}</div></div>`;
+}
+// ─── Actions ─────────────────────────────────────
+async function toggleAgenda(mid,aid){
+  const m=S.getMeeting(mid);let ap=null;
+  if(m){ap=(m.agendaPoints||[]).find(a=>(a.id||a._id)==aid);
+    if(ap){ap.status=ap.status==='open'?'closed':'open';render();}}
+  try{await api(`/agenda/${aid}`,{method:'PUT',body:JSON.stringify({status:ap?.status==='closed'?'completed':'open'})});
+    toast(`Task marked ${ap?.status||'updated'}!`,'success');
+  }catch{toast('Saved locally','info');}
+}
+async function toggleTask(mid,aid){
+  if(mid)await toggleAgenda(mid,aid);
+  else{const t=S.myTasks.find(x=>(x.id||x._id)==aid);
+    if(t){t.status=t.status==='open'?'closed':'open';render();}
+    try{await api(`/agenda/${aid}`,{method:'PUT',body:JSON.stringify({status:t?.status==='closed'?'completed':'open'})});}catch{}
+  }
+}
+async function deleteAgenda(mid,aid){
+  if(!confirm('Delete this agenda point?'))return;
+  const m=S.getMeeting(mid);
+  if(m)m.agendaPoints=(m.agendaPoints||[]).filter(a=>(a.id||a._id)!=aid);
+  render();
+  try{await api(`/agenda/${aid}`,{method:'DELETE'});toast('Deleted','success');}catch{toast('Deleted locally','info');}
+}
+async function deleteMeeting(id,title){
+  if(!confirm(`Delete "${title}"?`))return;
+  S.meetings=S.meetings.filter(m=>m.id!==id);render();
+  try{await api(`/meetings/${id}`,{method:'DELETE'});toast('Meeting deleted','success');}catch{toast('Deleted locally','info');}
+}
+// ─── Create Meeting Modal ────────────────────────
+function showNewMeetingModal(){
+  S.searchParticipants=[];S.selectedParticipants=[];
+  const now=new Date();now.setHours(now.getHours()+1,0,0,0);
+  now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  const def=now.toISOString().slice(0,16);
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Create New Meeting</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Title *</label>
+      <input class="form-input" id="mtgTitle" placeholder="e.g. Weekly Team Standup" required></div>
+    <div class="form-group"><label class="form-label">Date & Time *</label>
+      <input class="form-input" id="mtgDate" type="datetime-local" value="${def}" required></div>
+    <div class="form-group"><label class="form-label">Description</label>
+      <textarea class="form-input" id="mtgDesc" placeholder="Optional description…"></textarea></div>
+    <div class="form-group"><label class="form-label">Add Participants</label>
+      <div class="search-box"><i class="fas fa-search"></i><input type="text" id="partQ" placeholder="Search by name or email…" oninput="searchUsers()"></div>
+      <div id="partResults" class="user-search-results" style="display:none"></div>
+      <div id="selectedParts" class="selected-participants"></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="saveMtgBtn" onclick="doCreateMeeting()"><i class="fas fa-plus"></i> Create Meeting</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+let searchTimer=null;
+async function searchUsers(){
+  const q=document.getElementById('partQ')?.value||'';
+  const res=document.getElementById('partResults');
+  if(q.length<2){res.style.display='none';return;}
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(async()=>{
+    try{
+      const r=await api(`/team/search/users?q=${encodeURIComponent(q)}`);
+      const users=r.success?r.data.users:[];
+      const filtered=users.filter(u=>u._id!==S.user._id&&!S.selectedParticipants.find(p=>p.id===u._id));
+      if(!filtered.length){res.style.display='none';return;}
+      res.style.display='block';
+      res.innerHTML=filtered.map(u=>`<div class="user-result-item" onclick="addParticipant('${u._id}','${(u.name||u.email).replace(/'/g,"\\'")}','${u.email}')">
+        <div class="mini-avatar" style="width:28px;height:28px;font-size:12px">${(u.name||'U')[0].toUpperCase()}</div>
+        <div><div class="user-result-name">${u.name||u.email}</div><div class="user-result-email">${u.email}</div></div>
+      </div>`).join('');
+    }catch{res.style.display='none';}
+  },400);
+}
+function addParticipant(id,name,email){
+  if(S.selectedParticipants.find(p=>p.id===id))return;
+  S.selectedParticipants.push({id,name,email});
+  document.getElementById('partResults').style.display='none';
+  document.getElementById('partQ').value='';
+  renderSelectedParts();
+}
+function removeParticipant(id){
+  S.selectedParticipants=S.selectedParticipants.filter(p=>p.id!==id);
+  renderSelectedParts();
+}
+function renderSelectedParts(){
+  const c=document.getElementById('selectedParts');
+  if(!c)return;
+  c.innerHTML=S.selectedParticipants.map(p=>`<div class="participant-chip">${p.name}<button onclick="removeParticipant('${p.id}')">×</button></div>`).join('');
+}
+async function doCreateMeeting(){
+  const title=(document.getElementById('mtgTitle')?.value||'').trim();
+  const date=document.getElementById('mtgDate')?.value;
+  const desc=(document.getElementById('mtgDesc')?.value||'').trim();
+  if(!title||title.length<2){toast('Title must be at least 2 characters','warning');return;}
+  if(!date){toast('Please select a date and time','warning');return;}
+  const btn=document.getElementById('saveMtgBtn');
+  btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Creating…';
+  try{
+    const body={title,scheduledFor:new Date(date).toISOString()};
+    if(desc)body.description=desc;
+    if(S.selectedParticipants.length)body.participants=S.selectedParticipants.map(p=>p.id);
+    const r=await api('/meetings',{method:'POST',body:JSON.stringify(body)});
+    if(r.success){
+      S.notifs.unshift({text:`Meeting created: ${title}`,type:'success',time:'Just now',read:false});
+      closeModal();await S.fetchMeetings();render();toast('Meeting created successfully!','success');
+    }else{
+      const msg=r.errors?r.errors.map(e=>e.msg).join(', '):r.message||'Failed';
+      toast(msg,'error');btn.disabled=false;btn.innerHTML='<i class="fas fa-plus"></i> Create Meeting';
+    }
+  }catch(e){toast('Network error — is the backend running?','error');btn.disabled=false;btn.innerHTML='<i class="fas fa-plus"></i> Create Meeting';}
+}
+// ─── Team Modals ─────────────────────────────────
+function showCreateTeamModal(){
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Create Team</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Team Name *</label>
+      <input class="form-input" id="tmName" placeholder="e.g. Engineering Team" required></div>
+    <div class="form-group"><label class="form-label">Description</label>
+      <textarea class="form-input" id="tmDesc" placeholder="What does this team do?" rows="2"></textarea></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="saveTmBtn" onclick="doCreateTeam()">Create Team</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+async function doCreateTeam(){
+  const name=(document.getElementById('tmName')?.value||'').trim();
+  const description=(document.getElementById('tmDesc')?.value||'').trim();
+  if(name.length<2){toast('Name must be at least 2 characters','warning');return;}
+  const btn=document.getElementById('saveTmBtn');
+  btn.disabled=true;btn.textContent='Creating…';
+  try{
+    const r=await api('/team',{method:'POST',body:JSON.stringify({name,description})});
+    if(r.success){toast('Team created!','success');closeModal();await S.fetchTeam();render();}
+    else{toast(r.message||'Failed to create team','error');btn.disabled=false;btn.textContent='Create Team';}
+  }catch{toast('Network error','error');btn.disabled=false;btn.textContent='Create Team';}
+}
+function showAddMemberModal(tid){
+  S.sel=tid; // store team id temporarily
+  const t=S.getTeam(tid);
+  if(!t)return;
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Add to ${t.name}</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Search User</label>
+      <div class="search-box"><i class="fas fa-search"></i><input type="text" id="tmPartQ" placeholder="Search by name or email…" oninput="searchTeamUsers('${tid}')"></div>
+      <div id="tmPartResults" class="user-search-results" style="display:none"></div>
+    </div>
+    <div id="tmSelectedUser" style="display:none;margin-bottom:16px"><div class="participant-chip" id="tmChipName"></div></div>
+    <div class="form-group" id="tmRoleSel" style="display:none"><label class="form-label">Role</label>
+      <select class="form-input" id="tmRole"><option value="member">Member</option><option value="admin">Admin</option></select>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="addMemBtn" disabled onclick="doAddMember('${tid}')">Add Member</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+let tmSearchTimer=null;
+let tmDraftUser=null;
+async function searchTeamUsers(tid){
+  const q=document.getElementById('tmPartQ')?.value||'';
+  const res=document.getElementById('tmPartResults');
+  if(q.length<2){res.style.display='none';return;}
+  clearTimeout(tmSearchTimer);
+  tmSearchTimer=setTimeout(async()=>{
+    try{
+      const r=await api(`/team/search/users?q=${encodeURIComponent(q)}`);
+      const users=r.success?r.data.users:[];
+      const t=S.getTeam(tid);
+      const filtered=users.filter(u=>u._id!==S.user._id&&!t?.members?.some(m=>m.user._id===u._id));
+      if(!filtered.length){res.style.display='none';return;}
+      res.style.display='block';
+      res.innerHTML=filtered.map(u=>`<div class="user-result-item" onclick="selectTeamUser('${u._id}','${(u.name||u.email).replace(/'/g,"\\'")}','${u.email}')">
+        <div class="mini-avatar" style="width:28px;height:28px;font-size:12px">${(u.name||'U')[0].toUpperCase()}</div>
+        <div><div class="user-result-name">${u.name||u.email}</div><div class="user-result-email">${u.email}</div></div>
+      </div>`).join('');
+    }catch{res.style.display='none';}
+  },400);
+}
+function selectTeamUser(id,name,email){
+  tmDraftUser={id,name,email};
+  document.getElementById('tmPartResults').style.display='none';
+  document.getElementById('tmPartQ').value='';
+  document.getElementById('tmSelectedUser').style.display='block';
+  document.getElementById('tmChipName').innerHTML=`${name} - ${email} <button onclick="clearTeamUser()">×</button>`;
+  document.getElementById('tmRoleSel').style.display='block';
+  document.getElementById('addMemBtn').disabled=false;
+}
+function clearTeamUser(){
+  tmDraftUser=null;
+  document.getElementById('tmSelectedUser').style.display='none';
+  document.getElementById('tmRoleSel').style.display='none';
+  document.getElementById('addMemBtn').disabled=true;
+}
+async function doAddMember(tid){
+  if(!tmDraftUser)return;
+  const role=document.getElementById('tmRole')?.value||'member';
+  const btn=document.getElementById('addMemBtn');
+  btn.disabled=true;btn.textContent='Adding…';
+  try{
+    const r=await api(`/team/${tid}/members`,{method:'POST',body:JSON.stringify({userId:tmDraftUser.id,role})});
+    if(r.success){toast('Member added!','success');closeModal();await S.fetchTeam();render();}
+    else{toast(r.message||'Failed to add','error');btn.disabled=false;btn.textContent='Add Member';}
+  }catch{toast('Network error','error');btn.disabled=false;btn.textContent='Add Member';}
+}
+
+// ─── Add Agenda Modal ────────────────────────────
+function showAddAgendaModal(mid){
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Add Agenda Point</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Description *</label>
+      <textarea class="form-input" id="apText" rows="3" placeholder="What needs to be discussed?" required></textarea></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="apNote" rows="2" placeholder="Additional context…"></textarea></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="saveApBtn" onclick="doAddAgenda('${mid}')"><i class="fas fa-plus"></i> Add Point</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+async function doAddAgenda(mid){
+  const text=(document.getElementById('apText')?.value||'').trim();
+  const note=(document.getElementById('apNote')?.value||'').trim();
+  if(!text){toast('Please enter a description','warning');return;}
+  const btn=document.getElementById('saveApBtn');
+  btn.disabled=true;btn.textContent='Adding…';
+  try{
+    const r=await api('/agenda',{method:'POST',body:JSON.stringify({title:text,description:note||undefined,meeting:mid})});
+    if(r.success){
+      const m=S.getMeeting(mid);
+      if(m){if(!m.agendaPoints)m.agendaPoints=[];
+        m.agendaPoints.push({id:r.data.agenda._id,_id:r.data.agenda._id,text,note,status:'open',assignedTo:null});}
+      closeModal();render();toast('Agenda point added!','success');
+    }else{toast(r.message||'Failed to add','error');btn.disabled=false;btn.textContent='Add Point';}
+  }catch{
+    const m=S.getMeeting(mid);
+    if(m){if(!m.agendaPoints)m.agendaPoints=[];m.agendaPoints.push({id:'tmp'+Date.now(),_id:'tmp'+Date.now(),text,note,status:'open',assignedTo:null});}
+    closeModal();render();toast('Added locally (backend unreachable)','info');
+  }
+}
+// ─── Boot ────────────────────────────────────────
+S.init();
+</script>
+</body>
+</html>

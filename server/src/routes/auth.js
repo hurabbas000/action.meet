@@ -302,4 +302,32 @@ router.put('/password', [
     }
 });
 
+
+// ─── Update Profile (PUT /auth/profile) ───────────
+router.put('/profile', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
+        if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        const user = await User.findById(decoded.userId);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const { name, bio, email } = req.body;
+        if (name && name.trim()) user.name = name.trim();
+        if (bio !== undefined) user.bio = bio;
+        if (email && email !== user.email) {
+            const taken = await User.findOne({ email });
+            if (taken) return res.status(400).json({ success: false, message: 'Email already in use' });
+            user.email = email;
+        }
+        await user.save();
+        res.json({ success: true, message: 'Profile updated', data: { user: user.getProfile() } });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 module.exports = router;
