@@ -39,14 +39,7 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// Test Firestore connection
-db.collection('_test').limit(1).get()
-    .then(() => {
-        console.log("✅ Firestore: Connection successful");
-    })
-    .catch((error) => {
-        console.error("❌ Firestore: Connection failed", error);
-    });
+// Removed Firestore test connection to clear console errors as we use MongoDB now.
 
 // Export for global access
 window.firebase = firebase;
