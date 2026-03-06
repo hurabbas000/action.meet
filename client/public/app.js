@@ -1,7 +1,7 @@
 // ActionMeet Main Application JavaScript
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 
 // Global state
 let currentUser = null;
@@ -90,191 +90,170 @@ function handleLogin(event) {
             submitBtn.disabled = false;
             
             setTimeout(() => {
-                showMessage('success-message', '');
                 showApp();
                 loadMeetings();
             }, 1000);
         } else {
-            showMessage('error-message', data.message);
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            showMessage('error-message', data.message || 'Login failed');
         }
-    })
-    .catch((error) => {
-        clearTimeout(timeout);
-        console.error('❌ Login error:', error);
-        showMessage('error-message', 'Network error. Please check your connection.');
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
+    } catch (error) {
+        console.error('Login error:', error);
+        showMessage('error-message', 'Network error. Please try again.');
+    }
 }
 
-function handleSignup(event) {
+// Handle logout
+function handleLogout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    authToken = null;
+    currentUser = null;
+    meetings = [];
+    
+    showMessage('success-message', 'Logged out successfully!');
+    
+    setTimeout(() => {
+        showLogin();
+    }, 500);
+}
+
+// Show signup form
+function showSignup() {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('signup-form').classList.remove('hidden');
+    document.getElementById('login-toggle-text').textContent = 'Already have an account? ';
+    document.getElementById('signup-link').textContent = 'Sign In';
+    document.getElementById('signup-toggle').classList.add('hidden');
+}
+
+// Show login form
+function showLogin() {
+    document.getElementById('signup-form').classList.add('hidden');
+    document.getElementById('login-form').classList.remove('hidden');
+    document.getElementById('login-toggle-text').textContent = "Don't have an account? ";
+    document.getElementById('signup-link').textContent = 'Sign Up';
+    document.getElementById('signup-toggle').classList.remove('hidden');
+}
+
+// Handle signup
+async function handleSignup(event) {
     event.preventDefault();
+    
+    const name = document.getElementById('signup-name').value;
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
     
-    // Validation
     if (password !== confirmPassword) {
-        showMessage('signup-error', 'Passwords do not match. Please try again.');
+        showMessage('error-message', 'Passwords do not match');
         return;
     }
     
-    if (password.length < 6) {
-        showMessage('signup-error', 'Password must be at least 6 characters long.');
-        return;
-    }
-    
-    showMessage('signup-success', 'Creating account...');
-    
-    auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            console.log('✅ Account created:', userCredential.user.email);
-            showMessage('signup-success', 'Account created successfully!');
-            setTimeout(() => {
-                showLogin();
-                showMessage('signup-success', 'Please sign in with your new account.');
-            }, 2000);
-        })
-        .catch((error) => {
-            console.error('❌ Signup error:', error);
-            let errorMessage = error.message;
-            
-            // Provide user-friendly error messages
-            switch(error.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = 'An account with this email already exists.';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'Please enter a valid email address.';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = 'Password is too weak. Please choose a stronger password.';
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = 'Network error. Please check your connection.';
-                    break;
-            }
-            
-            showMessage('signup-error', errorMessage);
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, password })
         });
-}
-
-function handleLogout() {
-    auth.signOut().then(() => {
-        console.log('✅ User logged out');
-        showLogin();
-    });
-}
-
-// UI functions
-function showLogin() {
-    document.getElementById('login-page').style.display = 'flex';
-    document.getElementById('app-container').style.display = 'none';
-    document.getElementById('login-form').style.display = 'block';
-    document.getElementById('signup-form').style.display = 'none';
-    document.getElementById('form-title').textContent = 'Welcome Back';
-    document.getElementById('form-subtitle').textContent = 'Sign in to access your meetings';
-    clearMessages();
-}
-
-function showSignup() {
-    document.getElementById('login-page').style.display = 'flex';
-    document.getElementById('app-container').style.display = 'none';
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('signup-form').style.display = 'block';
-    document.getElementById('form-title').textContent = 'Create Account';
-    document.getElementById('form-subtitle').textContent = 'Join ActionMeet to manage your meetings';
-    clearMessages();
-}
-
-function showApp() {
-    document.getElementById('login-page').style.display = 'none';
-    document.getElementById('app-container').style.display = 'flex';
-}
-
-function clearMessages() {
-    showMessage('error-message', '');
-    showMessage('success-message', '');
-    showMessage('signup-error', '');
-    showMessage('signup-success', '');
-}
-
-function showMessage(elementId, message) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = message;
-        element.style.display = message ? 'block' : 'none';
-    }
-}
-
-function loadUserData() {
-    if (currentUser) {
-        const userName = document.getElementById('user-name');
-        const userRole = document.getElementById('user-role');
         
-        if (userName) {
-            userName.textContent = currentUser.displayName || currentUser.email;
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage('success-message', 'Account created successfully!');
+            showLogin();
+        } else {
+            showMessage('error-message', data.message || 'Signup failed');
         }
-        if (userRole) {
-            userRole.textContent = 'Host'; // Default role
-        }
+    } catch (error) {
+        console.error('Signup error:', error);
+        showMessage('error-message', 'Network error. Please try again.');
     }
 }
 
-function loadMeetings() {
-    if (!currentUser || !window.db) {
-        console.error('❌ Cannot load meetings: user not authenticated or db not initialized');
-        return;
+// Show message
+function showMessage(elementId, message) {
+    const messageElement = document.getElementById(elementId);
+    if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.classList.remove('hidden');
+        
+        setTimeout(() => {
+            messageElement.classList.add('hidden');
+        }, 3000);
     }
-    
-    console.log('📅 Loading meetings for user:', currentUser.uid);
-    
-    db.collection('meetings')
-        .where('participants', 'array-contains', currentUser.uid)
-        .orderBy('scheduledFor', 'desc')
-        .get()
-        .then((querySnapshot) => {
-            meetings = [];
-            querySnapshot.forEach((doc) => {
-                meetings.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
-            console.log('✅ Meetings loaded:', meetings.length, 'meetings');
-            updateMeetingsGrid();
-        })
-        .catch((error) => {
-            console.error('❌ Error loading meetings:', error);
+}
+
+// Load meetings from backend
+async function loadMeetings() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/meetings`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
         });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            meetings = data.data.meetings;
+            currentUser = data.data.currentUser || currentUser;
+            updateMeetingsGrid();
+            
+            // Update user info in UI
+            if (currentUser) {
+                updateUserProfile();
+            }
+        } else {
+            showMessage('error-message', 'Failed to load meetings');
+        }
+    } catch (error) {
+        console.error('Error loading meetings:', error);
+        showMessage('error-message', 'Network error loading meetings');
+    }
 }
 
+// Update meetings grid
 function updateMeetingsGrid() {
     const meetingsGrid = document.querySelector('#dashboard-page .meetings-grid');
     if (!meetingsGrid) return;
     
     if (meetings.length === 0) {
         meetingsGrid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 48px;">
-                <i class="fas fa-calendar" style="font-size: 64px; color: var(--gray); margin-bottom: 16px;"></i>
-                <p style="font-size: 16px; color: var(--text-secondary);">No meetings yet. Create your first meeting!</p>
+            <div class="empty-state">
+                <i class="fas fa-calendar empty-icon"></i>
+                <h3 class="empty-text">No meetings yet</h3>
+                <p class="empty-text">Create your first meeting to get started!</p>
             </div>
         `;
         return;
     }
     
-    meetingsGrid.innerHTML = meetings.map(meeting => `
+    meetingsGrid.innerHTML = meetings.map(meeting => {
+        const isHost = meeting.host && currentUser && meeting.host.id === currentUser.id;
+        const participantCount = meeting.participants ? meeting.participants.length : 0;
+        const participantNames = meeting.participants ? 
+            meeting.participants.slice(0, 3).map(p => p.user.name).join(', ') + 
+            (meeting.participants.length > 3 ? ` +${meeting.participants.length - 3} others` : '') : '';
+        
+        return `
         <div class="meeting-card" onclick="openMeeting('${meeting.id}')">
             <div class="meeting-header">
                 <div>
-                    <div class="meeting-title">${meeting.title || 'Untitled Meeting'}</div>
+                    <div class="meeting-title">${meeting.title}</div>
                     <div class="meeting-date">
                         <i class="fas fa-calendar"></i> ${formatDate(meeting.scheduledFor)}
                     </div>
+                    <div class="meeting-participants" style="font-size: 14px; color: #666; margin-top: 4px;">
+                        <i class="fas fa-users"></i> ${participantCount} participants
+                    </div>
+                    ${participantNames ? `<div class="participant-names" style="font-size: 12px; color: #888; margin-top: 2px;">${participantNames}</div>` : ''}
                 </div>
-                <span class="status-badge upcoming">Upcoming</span>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                    ${isHost ? '<span class="role-badge host">Host</span>' : '<span class="role-badge participant">Participant</span>'}
+                    <span class="status-badge ${meeting.status}">${meeting.status}</span>
+                </div>
             </div>
             <div class="progress-section">
                 <div class="progress-bar">
@@ -285,14 +264,158 @@ function updateMeetingsGrid() {
                     <span>${meeting.completionRate || 0}%</span>
                 </div>
             </div>
+            <div class="meeting-actions">
+                <button class="btn-action primary" onclick="event.stopPropagation(); openMeeting('${meeting.id}')">
+                    <i class="fas fa-video"></i> Join
+                </button>
+                <button class="btn-action secondary" onclick="event.stopPropagation(); viewDetails('${meeting.id}')">
+                    <i class="fas fa-info-circle"></i> Details
+                </button>
+            </div>
         </div>
     `).join('');
 }
 
+// Format date
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return date.toLocaleDateString('en-US', options);
+}
+
+// Open meeting
 function openMeeting(meetingId) {
     console.log('📂 Opening meeting:', meetingId);
-    // In a real app, this would navigate to meeting detail page
     alert(`Opening meeting: ${meetingId}`);
+}
+
+// View meeting details
+function viewDetails(meetingId) {
+    console.log('📋 Viewing details for:', meetingId);
+    alert(`Viewing details for meeting: ${meetingId}`);
+}
+
+// Filter meetings
+function filterMeetings(filter) {
+    // Update active tab
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter logic would go here
+    console.log('Filtering meetings by:', filter);
+    
+    // For now, just reload all meetings
+    updateMeetingsGrid();
+}
+
+// Page navigation
+function showDashboard() {
+    currentPage = 'dashboard';
+    updateActiveNavItem('dashboard');
+    showPage('dashboard-page');
+    document.getElementById('page-title').textContent = 'Dashboard';
+}
+
+function showMyTasks() {
+    currentPage = 'tasks';
+    updateActiveNavItem('tasks');
+    showPage('tasks-page');
+    document.getElementById('page-title').textContent = 'My Tasks';
+    loadTasks();
+}
+
+function showNotifications() {
+    currentPage = 'notifications';
+    updateActiveNavItem('notifications');
+    showPage('notifications-page');
+    document.getElementById('page-title').textContent = 'Notifications';
+}
+
+function showRecurring() {
+    currentPage = 'recurring';
+    updateActiveNavItem('recurring');
+    showPage('recurring-page');
+    document.getElementById('page-title').textContent = 'Recurring Meetings';
+}
+
+// Update active navigation item
+function updateActiveNavItem(page) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const navItems = {
+        'dashboard': 0,
+        'tasks': 1,
+        'notifications': 2,
+        'recurring': 3
+    };
+    
+    if (navItems[page] !== undefined) {
+        document.querySelectorAll('.nav-item')[navItems[page]].classList.add('active');
+    }
+}
+
+// Show specific page
+function showPage(pageId) {
+    document.querySelectorAll('.content-area > div').forEach(page => {
+        page.classList.add('hidden');
+    });
+    
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.classList.remove('hidden');
+    }
+}
+
+// Load tasks
+async function loadTasks() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            updateTasksDisplay(data.data.tasks);
+        } else {
+            console.error('Failed to load tasks');
+        }
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+    }
+}
+
+// Update tasks display
+function updateTasksDisplay(tasks) {
+    const tasksContainer = document.getElementById('tasks-container');
+    if (!tasksContainer) return;
+    
+    if (!tasks || tasks.length === 0) {
+        tasksContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-tasks empty-icon"></i>
+                <h3 class="empty-text">No tasks assigned yet</h3>
+                <p class="empty-text">Tasks assigned to you will appear here</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Task display logic would go here
+    tasksContainer.innerHTML = '<p>Tasks will be displayed here</p>';
 }
 
 // Modal functions
@@ -300,7 +423,6 @@ function openCreateMeetingModal() {
     const modal = document.getElementById('create-meeting-modal');
     if (modal) {
         modal.style.display = 'block';
-        setDefaultDateTime();
     }
 }
 
@@ -311,44 +433,88 @@ function closeModal(modalId) {
     }
 }
 
-function handleCreateMeeting(event) {
+// Handle create meeting
+async function handleCreateMeeting(event) {
     event.preventDefault();
     
     const title = document.getElementById('meeting-title-input').value;
     const date = document.getElementById('meeting-date-input').value;
+    const description = document.getElementById('meeting-description-input').value;
     
-    if (!currentUser || !window.db) {
-        console.error('❌ Cannot create meeting: user not authenticated or db not initialized');
-        return;
-    }
+    // Get selected participants
+    const selectedParticipants = Array.from(document.querySelectorAll('.participant-checkbox:checked'))
+        .map(checkbox => checkbox.value);
     
     const meetingData = {
         title: title,
+        description: description,
         scheduledFor: new Date(date),
-        createdAt: new Date(),
-        host: currentUser.uid,
-        participants: [currentUser.uid],
-        status: 'scheduled',
-        totalTasks: 0,
-        completedTasks: 0,
-        completionRate: 0
+        participants: selectedParticipants
     };
     
-    console.log('📝 Creating meeting:', meetingData);
+    showMessage('success-message', 'Creating meeting...');
     
-    db.collection('meetings').add(meetingData)
-        .then((docRef) => {
-            console.log('✅ Meeting created with ID:', docRef.id);
-            closeModal('create-meeting-modal');
-            document.getElementById('create-meeting-form').reset();
-            loadMeetings(); // Reload meetings
-        })
-        .catch((error) => {
-            console.error('❌ Error creating meeting:', error);
-            alert('Error creating meeting: ' + error.message);
+    try {
+        const response = await fetch(`${API_BASE_URL}/meetings`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(meetingData)
         });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage('success-message', 'Meeting created successfully!');
+            closeModal('create-meeting-modal');
+            loadMeetings(); // Refresh meetings list
+        } else {
+            showMessage('error-message', data.message);
+        }
+    } catch (error) {
+        console.error('Error creating meeting:', error);
+        showMessage('error-message', 'Network error creating meeting');
+    }
 }
 
+// Search and display participants
+async function searchParticipants() {
+    const searchQuery = document.getElementById('participant-search').value;
+    const checkboxesContainer = document.getElementById('participants-checkboxes');
+    
+    if (searchQuery.length < 2) {
+        checkboxesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Enter at least 2 characters to search</p>';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const users = data.data.users.filter(user => user.id !== currentUser.id); // Don't show current user
+            
+            checkboxesContainer.innerHTML = users.map(user => `
+                <div style="display: flex; align-items: center; padding: 8px; border-bottom: 1px solid #eee;">
+                    <input type="checkbox" id="participant-${user.id}" value="${user.id}" class="participant-checkbox" style="margin-right: 12px;">
+                    <label for="participant-${user.id}" style="flex: 1; cursor: pointer;">
+                        <div style="font-weight: 500; color: var(--navy);">${user.name}</div>
+                        <div style="font-size: 14px; color: #666;">${user.email}</div>
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            checkboxesContainer.innerHTML = '<p style="color: #d32f2f;">No users found</p>';
+        }
+    } catch (error) {
+        console.error('Error searching participants:', error);
+        checkboxesContainer.innerHTML = '<p style="color: #d32f2f;">Error searching users</p>';
+    }
+}
+
+// Set default date time
 function setDefaultDateTime() {
     const dateInput = document.getElementById('meeting-date-input');
     if (dateInput) {
@@ -358,26 +524,6 @@ function setDefaultDateTime() {
     }
 }
 
-function formatDate(date) {
-    if (!date) return 'No date';
-    
-    const d = date.toDate ? date.toDate() : new Date(date);
-    return d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Page navigation
-function showPage(page) {
-    // Hide all pages
-    document.querySelectorAll('[id$="-page"]').forEach(p => {
-        p.style.display = 'none';
-    });
-    
-    // Show selected page
     const pageElement = document.getElementById(page + '-page');
     if (pageElement) {
         pageElement.style.display = 'block';

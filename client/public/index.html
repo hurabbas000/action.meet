@@ -44,7 +44,7 @@
             overflow-x: hidden;
         }
 
-        /* LOGIN PAGE */
+        /* === LOGIN PAGE === */
         .login-container {
             min-height: 100vh;
             display: flex;
@@ -160,46 +160,44 @@
             box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
         }
 
-        .btn-secondary {
-            padding: 10px 20px;
-            background: var(--bg);
-            color: var(--text-primary);
-            border: 2px solid #E2E8F0;
-            border-radius: 8px;
-            font-size: 13px;
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .toggle-form a {
+            color: var(--indigo);
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            text-decoration: none;
         }
 
-        .btn-secondary:hover {
-            border-color: var(--indigo);
-            color: var(--indigo);
-        }
-
-        .error-message {
-            background: #FEE2E2;
-            color: var(--danger);
+        .message {
             padding: 12px;
             border-radius: 8px;
-            margin-top: 12px;
+            margin-bottom: 16px;
+            text-align: center;
             font-size: 14px;
-            display: none;
+            font-weight: 500;
         }
 
         .success-message {
             background: #D1FAE5;
-            color: var(--success);
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 12px;
-            font-size: 14px;
-            display: none;
+            color: #065F46;
+            border: 1px solid #065F46;
         }
 
-        /* MAIN APP LAYOUT */
+        .error-message {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FCA5A5;
+        }
+
+        /* === MAIN APP LAYOUT === */
         .app-container {
-            display: none;
+            display: flex;
             min-height: 100vh;
         }
 
@@ -355,7 +353,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* DASHBOARD */
+        /* === DASHBOARD === */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -404,6 +402,36 @@
             font-size: 13px;
             color: var(--text-secondary);
             font-weight: 500;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: var(--card);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+        }
+
+        .filter-tab:hover {
+            border-color: var(--indigo);
+            color: var(--indigo);
+        }
+
+        .filter-tab.active {
+            background: var(--indigo);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .meetings-grid {
@@ -491,6 +519,43 @@
             gap: 12px;
         }
 
+        .meeting-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-action.primary {
+            background: var(--indigo);
+            color: white;
+        }
+
+        .btn-action.primary:hover {
+            background: #5558E3;
+        }
+
+        .btn-action.secondary {
+            background: var(--bg);
+            color: var(--text-primary);
+            border: 2px solid #E2E8F0;
+        }
+
+        .btn-action.secondary:hover {
+            border-color: var(--indigo);
+            color: var(--indigo);
+        }
+
+        /* === FAB === */
         .fab {
             position: fixed;
             bottom: 32px;
@@ -513,11 +578,11 @@
             box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
         }
 
-        /* MODALS */
+        /* === MODAL === */
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 2000;
             left: 0;
             top: 0;
             width: 100%;
@@ -528,125 +593,521 @@
 
         .modal-content {
             background-color: var(--card);
-            margin: 5% auto;
-            padding: 30px;
+            margin: 10% auto;
+            padding: 32px;
             border-radius: 16px;
             width: 90%;
             max-width: 500px;
-            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             animation: slideUp 0.3s ease;
         }
 
         .close {
-            position: absolute;
-            right: 20px;
-            top: 20px;
+            color: var(--text-secondary);
+            float: right;
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            color: var(--text-secondary);
+            transition: color 0.3s;
         }
 
         .close:hover {
             color: var(--navy);
         }
 
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        /* Responsive */
+        /* === RESPONSIVE === */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-            }
-            
-            .sidebar.open {
-                transform: translateX(0);
             }
             
             .main-content {
                 margin-left: 0;
             }
             
-            .stats-grid, .meetings-grid {
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .meetings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px;
+                margin: 16px;
+            }
+            
+            .meeting-card {
+                padding: 16px;
+            }
+        }
+
+        /* === HIDDEN === */
+        .hidden {
+            display: none !important;
+        }
+
+        /* === LOADING === */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--indigo);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* === TASKS PAGE STYLES === */
+        .tasks-header {
+            background: linear-gradient(135deg, var(--indigo), var(--purple));
+            border-radius: 16px;
+            padding: 32px;
+            color: white;
+            margin-bottom: 24px;
+        }
+
+        .tasks-header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .tasks-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .tasks-filters {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 16px;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--indigo);
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            background: var(--card);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--indigo);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            color: var(--gray);
+            margin-bottom: 16px;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* === NOTIFICATIONS STYLES === */
+        .notifications-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        .notification-feed {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-mark-read {
+            padding: 8px 16px;
+            background: var(--bg);
+            border: 2px solid #E2E8F0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-mark-read:hover {
+            border-color: var(--indigo);
+            color: var(--indigo);
+        }
+
+        .notification-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .notification-item.unread {
+            background: #EEF2FF;
+            border-left: 4px solid var(--indigo);
+            font-weight: 600;
+        }
+
+        .notification-item.unread::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: var(--indigo);
+            border-radius: 50%;
+        }
+
+        .notif-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .notif-icon.blue { background: #DBEAFE; color: var(--blue); }
+        .notif-icon.green { background: #D1FAE5; color: var(--success); }
+        .notif-icon.yellow { background: #FEF3C7; color: var(--warning); }
+        .notif-icon.purple { background: #F3E8FF; color: var(--purple); }
+
+        .notif-content {
+            flex: 1;
+        }
+
+        .notif-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .notif-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* === RECURRING MEETINGS STYLES === */
+        .parent-meeting-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .parent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .parent-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--navy);
+            margin-bottom: 8px;
+        }
+
+        .parent-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .recurrence-badge {
+            padding: 8px 16px;
+            background: #F3E8FF;
+            color: var(--purple);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .followup-timeline {
+            margin-top: 24px;
+        }
+
+        .followup-item {
+            background: var(--card);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .followup-item.current {
+            border: 2px solid var(--indigo);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+        }
+
+        .followup-header {
+            padding: 20px 24px;
+            background: var(--bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .followup-item.current .followup-header {
+            background: linear-gradient(135deg, #EEF2FF, #F3E8FF);
+        }
+
+        .followup-title-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .followup-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--navy);
+        }
+
+        .followup-date {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--navy);
+        }
+
+        .current-badge {
+            padding: 4px 12px;
+            background: var(--indigo);
+            color: white;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .followup-summary {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+
+        .followup-content {
+            padding: 0 24px 20px 24px;
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .followup-item.collapsed .followup-content {
+            max-height: 0;
+            padding: 0 24px;
+        }
+
+        .assigned-to {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .mini-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--indigo), var(--purple));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .carried-badge {
+            padding: 4px 8px;
+            background: #FEF3C7;
+            color: #92400E;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chevron-icon {
+            font-size: 20px;
+            color: var(--text-secondary);
+            transition: transform 0.3s;
+        }
+
+        .followup-item.collapsed .chevron-icon {
+            transform: rotate(-90deg);
+        }
+
+        /* === ROLE BADGES === */
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-badge.host {
+            background: var(--primary);
+            color: white;
+        }
+
+        .role-badge.participant {
+            background: var(--success);
+            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- LOGIN PAGE -->
+    <!-- === LOGIN PAGE === -->
     <div id="login-page" class="login-container">
         <div class="login-card">
             <div class="login-header">
                 <div class="login-logo">
-                    <i class="fas fa-calendar-check"></i> ActionMeet
+                    <i class="fas fa-calendar-check"></i>
                 </div>
-                <h1 class="login-title" id="form-title">Welcome Back</h1>
-                <p class="login-subtitle" id="form-subtitle">Sign in to access your meetings</p>
+                <div class="login-title">ActionMeet</div>
+                <div class="login-subtitle">Every Action. Every Meeting. Accounted For.</div>
             </div>
-
+            
+            <div id="success-message" class="message success-message hidden"></div>
+            <div id="error-message" class="message error-message hidden"></div>
+            
             <!-- LOGIN FORM -->
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label class="form-label" for="email">Email Address</label>
+                    <label class="form-label">Email</label>
                     <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
+                    <label class="form-label">Password</label>
                     <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
                 </div>
                 <button type="submit" class="btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
+                    Sign In
                 </button>
-                <div id="error-message" class="error-message"></div>
-                <div id="success-message" class="success-message"></div>
             </form>
-
+            
             <!-- SIGNUP FORM -->
-            <form id="signup-form" onsubmit="handleSignup(event)" style="display: none;">
+            <form id="signup-form" class="hidden" onsubmit="handleSignup(event)">
                 <div class="form-group">
-                    <label class="form-label" for="signup-email">Email Address</label>
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="signup-name" class="form-input" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
                     <input type="email" id="signup-email" class="form-input" placeholder="Enter your email" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="signup-password">Password</label>
+                    <label class="form-label">Password</label>
                     <input type="password" id="signup-password" class="form-input" placeholder="Create a password" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="confirm-password">Confirm Password</label>
+                    <label class="form-label">Confirm Password</label>
                     <input type="password" id="confirm-password" class="form-input" placeholder="Confirm your password" required>
                 </div>
                 <button type="submit" class="btn-primary">
-                    <i class="fas fa-user-plus"></i> Create Account
+                    Create Account
                 </button>
-                <div id="signup-error" class="error-message"></div>
-                <div id="signup-success" class="success-message"></div>
             </form>
-
-            <!-- TOGGLE BUTTONS -->
-            <div style="text-align: center; margin-top: 24px;">
-                <button type="button" class="btn-secondary" onclick="showLogin()">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </button>
-                <button type="button" class="btn-secondary" onclick="showSignup()">
-                    <i class="fas fa-user-plus"></i> Create Account
-                </button>
+            
+            <div class="toggle-form">
+                <span id="login-toggle-text">Don't have an account? </span>
+                <a href="#" onclick="showSignup()" id="signup-link">Sign Up</a>
+            </div>
+            
+            <div class="toggle-form hidden" id="signup-toggle">
+                <span>Already have an account? </span>
+                <a href="#" onclick="showLogin()">Sign In</a>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP -->
-    <div id="app-container" class="app-container">
+    <!-- === MAIN APP === -->
+    <div id="app-page" class="app-container hidden">
         <!-- SIDEBAR -->
-        <div class="sidebar">
+        <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="app-logo">
-                    <i class="fas fa-calendar-check"></i> ActionMeet
+                    <i class="fas fa-calendar-check"></i>
+                    <span>ActionMeet</span>
                 </div>
             </div>
             
@@ -659,155 +1120,237 @@
                     <div class="user-role" id="user-role">Host</div>
                 </div>
             </div>
-
+            
             <nav class="nav-menu">
-                <div class="nav-item active" onclick="showPage('dashboard')">
+                <div class="nav-item active" onclick="showDashboard()">
                     <i class="fas fa-th-large"></i>
                     <span>Dashboard</span>
                 </div>
-                <div class="nav-item" onclick="showPage('meetings')">
-                    <i class="fas fa-calendar"></i>
-                    <span>Meetings</span>
-                </div>
-                <div class="nav-item" onclick="showPage('my-tasks')">
+                <div class="nav-item" onclick="showMyTasks()">
                     <i class="fas fa-tasks"></i>
                     <span>My Tasks</span>
-                    <span class="nav-badge">3</span>
                 </div>
-                <div class="nav-item" onclick="showPage('notifications')">
+                <div class="nav-item" onclick="showNotifications()">
                     <i class="fas fa-bell"></i>
                     <span>Notifications</span>
-                    <span class="nav-badge">5</span>
+                    <div class="nav-badge">3</div>
                 </div>
-                <div class="nav-divider"></div>
-                <div class="nav-item" onclick="showPage('settings')">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                <div class="nav-item" onclick="showRecurring()">
+                    <i class="fas fa-sync"></i>
+                    <span>Recurring</span>
+                </div>
+                <div class="nav-item locked">
+                    <i class="fas fa-users"></i>
+                    <span>Team</span>
                 </div>
                 <div class="nav-item" onclick="handleLogout()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
                 </div>
             </nav>
-        </div>
+        </aside>
 
         <!-- MAIN CONTENT -->
-        <div class="main-content">
+        <main class="main-content">
             <!-- TOPBAR -->
             <div class="topbar">
                 <h1 class="topbar-title" id="page-title">Dashboard</h1>
             </div>
 
-            <!-- CONTENT AREA -->
-            <div class="content-area">
-                <!-- DASHBOARD PAGE -->
-                <div id="dashboard-page">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon blue">
-                                <i class="fas fa-calendar"></i>
-                            </div>
-                            <div class="stat-details">
-                                <h3>12</h3>
-                                <p>Total Meetings</p>
-                            </div>
+            <!-- DASHBOARD PAGE -->
+            <div id="dashboard-page" class="content-area">
+                <!-- STATISTICS CARDS -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-calendar"></i>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon orange">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stat-details">
-                                <h3>24</h3>
-                                <p>Hours This Month</p>
-                            </div>
+                        <div class="stat-details">
+                            <h3>12</h3>
+                            <p>Total Meetings</p>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon green">
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>24</h3>
+                            <p>Hours This Week</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>89%</h3>
+                            <p>Completion Rate</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="stat-details">
+                            <h3>156</h3>
+                            <p>Total Tasks</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FILTER TABS -->
+                <div class="filter-tabs">
+                    <div class="filter-tab active" onclick="filterMeetings('all')">All Meetings</div>
+                    <div class="filter-tab" onclick="filterMeetings('upcoming')">Upcoming</div>
+                    <div class="filter-tab" onclick="filterMeetings('past')">Past</div>
+                    <div class="filter-tab" onclick="filterMeetings('recurring')">Recurring</div>
+                </div>
+
+                <!-- MEETINGS GRID -->
+                <div class="meetings-grid" id="meetings-grid">
+                    <!-- Meeting cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- MY TASKS PAGE -->
+            <div id="tasks-page" class="content-area hidden">
+                <div class="tasks-header">
+                    <h1>My Tasks</h1>
+                    <p>Track your action items and deadlines</p>
+                </div>
+                
+                <div class="tasks-filters">
+                    <div class="filter-row">
+                        <input type="text" class="search-input" placeholder="Search tasks..." id="task-search">
+                        <select class="filter-select" id="task-status-filter">
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tasks will be dynamically inserted here -->
+                <div id="tasks-container">
+                    <div class="empty-state">
+                        <i class="fas fa-tasks empty-icon"></i>
+                        <h3 class="empty-text">No tasks assigned yet</h3>
+                        <p class="empty-text">Tasks assigned to you will appear here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTIFICATIONS PAGE -->
+            <div id="notifications-page" class="content-area hidden">
+                <div class="notifications-container">
+                    <div class="notification-feed">
+                        <div class="feed-header">
+                            <h3>Notifications</h3>
+                            <button class="btn-mark-read">Mark All Read</button>
+                        </div>
+                        
+                        <!-- Sample notifications -->
+                        <div class="notification-item unread">
+                            <div class="notif-icon green">
                                 <i class="fas fa-check-circle"></i>
                             </div>
-                            <div class="stat-details">
-                                <h3>89%</h3>
-                                <p>Completion Rate</p>
+                            <div class="notif-content">
+                                <div class="notif-text">Meeting completed: Weekly Standup</div>
+                                <div class="notif-time">2 hours ago</div>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon purple">
-                                <i class="fas fa-users"></i>
+                        
+                        <div class="notification-item unread">
+                            <div class="notif-icon yellow">
+                                <i class="fas fa-exclamation-triangle"></i>
                             </div>
-                            <div class="stat-details">
-                                <h3>6</h3>
-                                <p>Team Members</p>
+                            <div class="notif-content">
+                                <div class="notif-text">Reminder: Strategy Review in 1 hour</div>
+                                <div class="notif-time">1 hour ago</div>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-item">
+                            <div class="notif-icon blue">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="notif-content">
+                                <div class="notif-text">You were added to Team Sync meeting</div>
+                                <div class="notif-time">Yesterday</div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="meetings-grid">
-                        <div class="meeting-card" onclick="openMeeting('weekly-standup')">
-                            <div class="meeting-header">
-                                <div>
-                                    <div class="meeting-title">Weekly Standup</div>
-                                    <div class="meeting-date">
-                                        <i class="fas fa-calendar"></i> Tomorrow, 10:00 AM
-                                    </div>
+            <!-- RECURRING MEETINGS PAGE -->
+            <div id="recurring-page" class="content-area hidden">
+                <!-- Sample recurring meeting cards -->
+                <div class="parent-meeting-card">
+                    <div class="parent-header">
+                        <div>
+                            <div class="parent-title">Weekly Standup</div>
+                            <div class="parent-description">Daily team synchronization meeting</div>
+                        </div>
+                        <div class="recurrence-badge">
+                            <i class="fas fa-sync"></i>
+                            <span>Weekly</span>
+                        </div>
+                    </div>
+                    
+                    <div class="followup-timeline">
+                        <div class="followup-item current">
+                            <div class="followup-header">
+                                <div class="followup-title-section">
+                                    <div class="followup-title">Today's Standup</div>
+                                    <div class="followup-date">March 6, 2024</div>
                                 </div>
-                                <span class="status-badge upcoming">Upcoming</span>
+                                <div class="current-badge">Current</div>
                             </div>
-                            <div class="progress-section">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 75%;"></div>
-                                </div>
-                                <div class="progress-text">
-                                    <span>6 of 8 tasks completed</span>
-                                    <span>75%</span>
+                            <div class="followup-summary">
+                                <div class="followup-content">
+                                    <div class="assigned-to">
+                                        <div class="mini-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <span>Assigned to: John, Sarah, Mike</span>
+                                    </div>
+                                    <div class="carried-badge">
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span>3 carried over</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="meeting-card" onclick="openMeeting('strategy-review')">
-                            <div class="meeting-header">
-                                <div>
-                                    <div class="meeting-title">Q2 Strategy Review</div>
-                                    <div class="meeting-date">
-                                        <i class="fas fa-calendar"></i> Friday, 2:00 PM
+                        
+                        <div class="followup-item">
+                            <div class="followup-header">
+                                <div class="followup-title-section">
+                                    <div class="followup-title">Last Week's Standup</div>
+                                    <div class="followup-date">February 28, 2024</div>
+                                </div>
+                            </div>
+                            <div class="followup-summary">
+                                <div class="followup-content">
+                                    <div class="assigned-to">
+                                        <div class="mini-avatar">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <span>Assigned to: Jane, Mike</span>
                                     </div>
-                                </div>
-                                <span class="status-badge recurring">Recurring</span>
-                            </div>
-                            <div class="progress-section">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 45%;"></div>
-                                </div>
-                                <div class="progress-text">
-                                    <span>9 of 16 tasks completed</span>
-                                    <span>45%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="meeting-card" onclick="openMeeting('team-retrospective')">
-                            <div class="meeting-header">
-                                <div>
-                                    <div class="meeting-title">Team Retrospective</div>
-                                    <div class="meeting-date">
-                                        <i class="fas fa-calendar"></i> Last Friday, 3:00 PM
+                                    <div class="carried-badge">
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span>2 carried over</span>
                                     </div>
-                                </div>
-                                <span class="status-badge closed">Completed</span>
-                            </div>
-                            <div class="progress-section">
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 100%;"></div>
-                                </div>
-                                <div class="progress-text">
-                                    <span>12 of 12 tasks completed</span>
-                                    <span>100%</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
 
         <!-- FLOATING ACTION BUTTON -->
         <button class="fab" onclick="openCreateMeetingModal()">
@@ -822,21 +1365,35 @@
             <h2 style="margin-bottom: 20px; color: var(--navy);">Create New Meeting</h2>
             <form id="create-meeting-form" onsubmit="handleCreateMeeting(event)">
                 <div class="form-group">
-                    <label class="form-label" for="meeting-title">Meeting Title</label>
+                    <label class="form-label">Meeting Title</label>
                     <input type="text" id="meeting-title-input" class="form-input" placeholder="Enter meeting title" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="meeting-date">Meeting Date & Time</label>
+                    <label class="form-label">Description</label>
+                    <textarea id="meeting-description-input" class="form-input" placeholder="Enter meeting description (optional)" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date & Time</label>
                     <input type="datetime-local" id="meeting-date-input" class="form-input" required>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Add Participants</label>
+                    <div id="participants-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <input type="text" id="participant-search" placeholder="Search users..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button type="button" onclick="searchParticipants()" style="margin-left: 8px; padding: 8px 16px; background: var(--indigo); color: white; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+                        </div>
+                        <div id="participants-checkboxes"></div>
+                    </div>
+                </div>
                 <div class="form-actions">
-                    <button type="button" class="btn-secondary" onclick="closeModal('create-meeting-modal')">Cancel</button>
-                    <button type="submit" class="btn-primary">Create Meeting</button>
+                    <button type="button" class="btn-action secondary" onclick="closeModal('create-meeting-modal')">Cancel</button>
+                    <button type="submit" class="btn-action primary">Create Meeting</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="../app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
