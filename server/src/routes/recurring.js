@@ -88,8 +88,7 @@ router.post('/', [
 
         if (team) recurringData.team = team;
 
-        const recurringMeeting = new RecurringMeeting(recurringData);
-        await recurringMeeting.save();
+        const recurringMeeting = await RecurringMeeting.create(recurringData);
         
         // Auto-create the very first meeting instance
         const firstMeeting = await recurringMeeting.createNextMeeting();

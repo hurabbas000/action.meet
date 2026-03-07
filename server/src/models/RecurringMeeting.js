@@ -230,7 +230,7 @@ recurringMeetingSchema.methods.calculateNextMeetingDate = function() {
 
 // Method to create next follow-up meeting
 recurringMeetingSchema.methods.createNextMeeting = function() {
-    const Meeting = mongoose.model('Meeting');
+    const Meeting = require('./Meeting');
     const nextDate = this.calculateNextMeetingDate();
     
     if (!nextDate) {
@@ -277,7 +277,7 @@ recurringMeetingSchema.methods.createNextMeeting = function() {
 
 // Method to get upcoming meetings
 recurringMeetingSchema.methods.getUpcomingMeetings = function(count = 5) {
-    const Meeting = mongoose.model('Meeting');
+    const Meeting = require('./Meeting');
     return Meeting.find({
         parentMeeting: this._id,
         scheduledFor: { $gte: new Date() },
@@ -291,7 +291,7 @@ recurringMeetingSchema.methods.getUpcomingMeetings = function(count = 5) {
 
 // Method to get meeting statistics
 recurringMeetingSchema.methods.updateStatistics = async function() {
-    const Meeting = mongoose.model('Meeting');
+    const Meeting = require('./Meeting');
     
     const meetings = await Meeting.find({ parentMeeting: this._id });
     
@@ -309,4 +309,5 @@ recurringMeetingSchema.methods.updateStatistics = async function() {
     return this.save();
 };
 
-module.exports = mongoose.model('RecurringMeeting', recurringMeetingSchema);
+const { createModel } = require('./modelHelper');
+module.exports = createModel('RecurringMeeting', recurringMeetingSchema, 'recurring_meetings');

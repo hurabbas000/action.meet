@@ -211,4 +211,5 @@ meetingSchema.pre('save', function() {
     }
 });
 
-module.exports = mongoose.model('Meeting', meetingSchema);
+const { createModel } = require('./modelHelper');
+module.exports = createModel('Meeting', meetingSchema, 'meetings');

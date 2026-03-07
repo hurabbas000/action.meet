@@ -90,7 +90,7 @@ router.post('/', [
         const { name, description, settings = {} } = req.body;
 
         // Create team
-        const team = new Team({
+        const team = await Team.create({
             name,
             description,
             createdBy: req.userId,
@@ -107,8 +107,6 @@ router.post('/', [
                 ...settings
             }
         });
-
-        await team.save();
         await team.populate('createdBy', 'name email');
         await team.populate('members.user', 'name email');
 

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -276,14 +276,27 @@ const S={
     localStorage.setItem('am_settings',JSON.stringify(this.settings));
   },
   async loadAll(){
-    await this.fetchMeetings();
+    await Promise.all([
+        this.fetchMeetings(),
+        this.fetchTeam(),
+        this.fetchMyTasks(),
+        this.fetchNotifications()
+    ]);
     render();
-    this.fetchTeam();
-    this.fetchMyTasks();
   },
   async fetchMeetings(){
-    try{const r=await api('/meetings');
-      if(r.success)this.meetings=(r.data.meetings||[]).map(normM);}catch(e){}
+    try{
+      const [rM, rR] = await Promise.all([api('/meetings'), api('/recurring')]);
+      let allMeetings = [];
+      if(rM.success) allMeetings = [...allMeetings, ...(rM.data.meetings||[]).map(normM)];
+      if(rR.success) allMeetings = [...allMeetings, ...(rR.data.recurringMeetings||[]).map(m => {
+          m.meetingType = 'recurring'; // force type for recurring configs
+          // Make sure it has a valid date and title for the UI
+          m.scheduledFor = m.nextMeetingDate || new Date().toISOString(); 
+          return normM(m);
+      })];
+      this.meetings = allMeetings;
+    }catch(e){console.error(e)}
   },
   async fetchTeam(){
     try{const r=await api('/team');
@@ -308,6 +321,12 @@ const S={
         meetingId:t.meeting?._id||t.meeting,
         meetingTitle:t.meeting?.title||'Meeting',
         meetingDate:t.meeting?.scheduledFor?fmtDate(t.meeting.scheduledFor):''
+      }));}catch(e){}
+  },
+  async fetchNotifications(){
+    try{const r=await api('/notifications');
+      if(r.success)this.notifs=(r.data.notifications||[]).map(n=>({
+        id:n._id,text:n.text,type:n.type,time:'Just now',read:!!n.isRead
       }));}catch(e){}
   },
   getMeeting(id){return this.meetings.find(m=>m.id===id||m._id===id);},
@@ -507,6 +526,40 @@ function renderDashboard(){
   const firstName=(S.user.name||S.user.email).split(' ')[0];
   const greeting=new Date().getHours()<12?'Good morning':new Date().getHours()<18?'Good afternoon':'Good evening';
 
+  // Group meetings into chains (parent -> children) if they have a parentMeeting
+  // 1. Build a map of all meetings
+  const mTreeMap = {};
+  filtered.forEach(m => mTreeMap[m.id||m._id] = {...m, children: []});
+  
+  // 2. Assign children
+  const roots = [];
+  filtered.forEach(m => {
+     if(m.parentMeeting && mTreeMap[m.parentMeeting]) {
+         mTreeMap[m.parentMeeting].children.push(mTreeMap[m.id||m._id]);
+     } else {
+         roots.push(mTreeMap[m.id||m._id]);
+     }
+  });
+
+  // 3. Render function for a deeply nested or flat meeting
+  // We highlight the root (current) and collapse children
+  const renderMeetingGroup = (node) => {
+      let html = renderMCard(node);
+      if(node.children && node.children.length > 0) {
+          // Sort children descending (newest follow-up first)
+          node.children.sort((a,b)=> new Date(b.date||b.createdAt) - new Date(a.date||a.createdAt));
+          html += `<details class="followup-details" style="margin-top:-10px;margin-bottom:20px;margin-left:20px;border-left:2px solid var(--border);padding-left:15px">
+                      <summary style="cursor:pointer;font-size:12px;color:var(--text3);padding:8px 0;outline:none;user-select:none">
+                        <i class="fas fa-history"></i> Show ${node.children.length} Previous Follow-up(s)
+                      </summary>
+                      <div class="grid2" style="margin-top:10px;grid-template-columns:1fr">
+                        ${node.children.map(renderMeetingGroup).join('')}
+                      </div>
+                   </details>`;
+      }
+      return html;
+  };
+
   return`
   <div style="margin-bottom:32px">
     <h1 style="font-size:28px;font-weight:800;color:var(--text);margin-bottom:8px">${greeting}, ${firstName}! 👋</h1>
@@ -526,8 +579,8 @@ function renderDashboard(){
       ${['all','upcoming','past','recurring'].map(f=>`<button class="filter-btn ${S.filter===f?'active':''}" data-f="${f}">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}
     </div>
   </div>
-  <div class="grid2">
-    ${filtered.length?filtered.map(renderMCard).join(''):empty('fa-calendar-plus','No meetings yet','Click the + button to create your first meeting')}
+  <div class="grid2" style="align-items:start">
+    ${roots.length?roots.map(renderMeetingGroup).join(''):empty('fa-calendar-plus','No meetings yet','Click the + button to create your first meeting')}
   </div>`;
 }
 function stat(col,ic,val,label){
@@ -584,6 +637,9 @@ function renderMCard(m){
         </button>
         <button class="card-dropdown-item" onclick="closeMenus();showAddParticipantModal('${m.id}')">
           <i class="fas fa-user-plus"></i> Invite Participant
+        </button>
+        <button class="card-dropdown-item" onclick="closeMenus();showFollowUpModal('${m.id}')">
+          <i class="fas fa-calendar-plus"></i> Create Follow-Up
         </button>
         <div class="card-dropdown-sep"></div>
         <button class="card-dropdown-item danger" onclick="closeMenus();deleteMeeting('${m.id}','${safeTitle}')">
@@ -970,11 +1026,11 @@ function renderAgendaLine(mid,a,isHost){
       <div class="agenda-text ${done?'done':''}">${a.text}</div>
       ${a.note&&a.note!==a.text?`<div class="agenda-note">${a.note}</div>`:''}
       <div class="agenda-assignee">
-        ${name?`<div class="mini-avatar">${name[0].toUpperCase()}</div><span>${name}</span>`:'<span style="color:var(--text3)">Unassigned</span>'}
+        ${name?`<div class="mini-avatar">${name[0].toUpperCase()}</div><span>${name}</span>`:'<span style="color:var(--text3);font-size:11px"><i class="fas fa-user-clock"></i> Unassigned</span>'}
         <span class="badge ${done?'closed':'open'}" style="margin-left:8px">${done?'closed':'open'}</span>
       </div>
     </div>
-    ${isHost?`<button class="btn-icon danger" onclick="deleteAgenda('${mid}','${a.id||a._id}')"><i class="fas fa-trash"></i></button>`:''}
+    ${isHost?`<div style="display:flex;gap:4px;"><button class="btn-icon" style="color:var(--primary);background:var(--bg2);" onclick="showEditAgendaModal('${mid}','${a.id||a._id}')" title="Edit Agenda Point"><i class="fas fa-edit"></i></button><button class="btn-icon danger" onclick="deleteAgenda('${mid}','${a.id||a._id}')" title="Delete Agenda Point"><i class="fas fa-trash"></i></button></div>`:''}
   </div>`;
 }
 function empty(ic,title,sub){
@@ -983,25 +1039,78 @@ function empty(ic,title,sub){
 // ─── Actions ─────────────────────────────────────
 async function toggleAgenda(mid,aid){
   const m=S.getMeeting(mid);let ap=null;
-  if(m){ap=(m.agendaPoints||[]).find(a=>(a.id||a._id)==aid);
-    if(ap){ap.status=ap.status==='open'?'closed':'open';render();}}
-  try{await api(`/agenda/${aid}`,{method:'PUT',body:JSON.stringify({status:ap?.status==='closed'?'completed':'open'})});
-    toast(`Task marked ${ap?.status||'updated'}!`,'success');
-  }catch{toast('Saved locally','info');}
+  let oldStatus = null;
+  if(m){
+    ap=(m.agendaPoints||[]).find(a=>(a.id||a._id)==aid);
+    if(ap){
+      oldStatus = ap.status;
+      ap.status=ap.status==='open'?'closed':'open';
+      render();
+    }
+  }
+  try {
+    const targetStatus = ap?.status==='closed'?'completed':'open';
+    const r = await api(`/agenda/${aid}`, {method:'PUT',body:JSON.stringify({status:targetStatus})});
+    if(r.success) {
+      toast(`Task marked ${ap?.status||'updated'}!`, 'success');
+      // Sync MyTasks and re-render so dashboard updates too
+      await S.fetchMyTasks();
+      render();
+    } else {
+      if(ap) { ap.status = oldStatus; render(); }
+      toast(r.message || 'Failed to update task', 'error');
+    }
+  } catch(e) {
+    if(ap) { ap.status = oldStatus; render(); }
+    toast('Network error', 'error');
+  }
 }
 async function toggleTask(mid,aid){
-  if(mid)await toggleAgenda(mid,aid);
-  else{const t=S.myTasks.find(x=>(x.id||x._id)==aid);
-    if(t){t.status=t.status==='open'?'closed':'open';render();}
-    try{await api(`/agenda/${aid}`,{method:'PUT',body:JSON.stringify({status:t?.status==='closed'?'completed':'open'})});}catch{}
+  if(mid) {
+      await toggleAgenda(mid,aid);
+  } else {
+      const t=S.myTasks.find(x=>(x.id||x._id)==aid);
+      let oldStatus = null;
+      if(t){
+          oldStatus = t.status;
+          t.status=t.status==='open'?'closed':'open';
+          render();
+      }
+      try {
+          const targetStatus = t?.status==='closed'?'completed':'open';
+          const r = await api(`/agenda/${aid}`, {method:'PUT',body:JSON.stringify({status:targetStatus})});
+          if(r.success) {
+              toast(`Task marked ${t?.status||'updated'}!`, 'success');
+              await S.fetchMeetings();
+              render();
+          } else {
+              if(t) { t.status = oldStatus; render(); }
+              toast(r.message || 'Failed to update task', 'error');
+          }
+      } catch(e) {
+          if(t) { t.status = oldStatus; render(); }
+          toast('Network error', 'error');
+      }
   }
 }
 async function deleteAgenda(mid,aid){
-  if(!confirm('Delete this agenda point?'))return;
-  const m=S.getMeeting(mid);
-  if(m)m.agendaPoints=(m.agendaPoints||[]).filter(a=>(a.id||a._id)!=aid);
-  render();
-  try{await api(`/agenda/${aid}`,{method:'DELETE'});toast('Deleted','success');}catch{toast('Deleted locally','info');}
+  if(!confirm('Are you sure you want to delete this agenda point?')) return;
+  try {
+    const r = await api(`/agenda/${aid}`, { method: 'DELETE' });
+    if(r.success) {
+      const m = S.getMeeting(mid);
+      if(m && m.agendaPoints) {
+        m.agendaPoints = m.agendaPoints.filter(a => (a.id||a._id) !== aid);
+        await S.fetchMyTasks(); // sync tasks
+        render();
+      }
+      toast('Agenda point deleted', 'success');
+    } else {
+      toast(r.message || 'Failed to delete agenda point', 'error');
+    }
+  } catch {
+    toast('Network error', 'error');
+  }
 }
 async function deleteMeeting(id,title){
   if(!confirm(`Delete "${title}"?`))return;
@@ -1348,16 +1457,190 @@ async function doAddAgenda(mid){
     const r=await api('/agenda',{method:'POST',body:JSON.stringify(reqBody)});
     if(r.success){
       const m=S.getMeeting(mid);
-      if(m){if(!m.agendaPoints)m.agendaPoints=[];
-        m.agendaPoints.push({id:r.data.agenda._id,_id:r.data.agenda._id,text,note,status:'open',assignedTo:null});}
-      closeModal();render();toast('Agenda point added!','success');
+      if(m){
+        if(!m.agendaPoints)m.agendaPoints=[];
+        let assignedUserDetails = null;
+        if(assignee) {
+           const p = m.participants.find(pt=>(pt.user?._id||pt.user)===assignee);
+           if(p) assignedUserDetails = p.user;
+        }
+        m.agendaPoints.push({id:r.data.agenda._id,_id:r.data.agenda._id,text,note,status:'open',assignedTo:assignedUserDetails});
+      }
+      closeModal();
+      await S.fetchMyTasks(); // Sync backend state
+      render();
+      toast('Agenda point added!','success');
     }else{toast(r.message||'Failed to add','error');btn.disabled=false;btn.textContent='Add Point';}
   }catch{
-    const m=S.getMeeting(mid);
-    if(m){if(!m.agendaPoints)m.agendaPoints=[];m.agendaPoints.push({id:'tmp'+Date.now(),_id:'tmp'+Date.now(),text,note,status:'open',assignedTo:null});}
-    closeModal();render();toast('Added locally (backend unreachable)','info');
+    toast('Network error — is the backend running?','error');
+    btn.disabled=false;btn.textContent='Add Point';
   }
 }
+
+async function deleteAgenda(mid, aid) {
+  if(!confirm('Are you sure you want to delete this agenda point?')) return;
+  try {
+    const r = await api(`/agenda/${aid}`, { method: 'DELETE' });
+    if(r.success) {
+      const m = S.getMeeting(mid);
+      if(m && m.agendaPoints) {
+        m.agendaPoints = m.agendaPoints.filter(a => (a.id||a._id) !== aid);
+        render();
+      }
+      toast('Agenda point deleted', 'success');
+    } else {
+      toast(r.message || 'Failed to delete agenda point', 'error');
+    }
+  } catch {
+    toast('Network error', 'error');
+  }
+}
+
+// ─── Edit Agenda Modal ───────────────────────────
+function showEditAgendaModal(mid, aid) {
+  const m = S.getMeeting(mid);
+  if (!m) return;
+  const ap = (m.agendaPoints || []).find(a => (a.id||a._id) === aid);
+  if (!ap) return;
+
+  const parts = m.participants || [];
+  const assigneeOptions = parts.map(p => {
+      const u = p.user || p;
+      const uId = u._id || u.id;
+      const uName = u.name || u.email || 'Unknown';
+      const isSel = ap.assignedTo && ap.assignedTo._id === uId ? 'selected' : '';
+      return `<option value="${uId}" ${isSel}>${uName}</option>`;
+  }).join('');
+
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Edit Agenda Point</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Description *</label>
+      <textarea class="form-input" id="eApText" rows="3" required>${(ap.text||'').replace(/</g,'&lt;')}</textarea></div>
+    <div class="form-group"><label class="form-label">Assign To (Optional)</label>
+      <select class="form-input" id="eApAssignee">
+        <option value="">-- Unassigned --</option>
+        ${assigneeOptions}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" id="eApNote" rows="2">${(ap.note||'').replace(/</g,'&lt;')}</textarea></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="saveeApBtn" onclick="doEditAgenda('${mid}','${aid}')"><i class="fas fa-save"></i> Save Changes</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+
+async function doEditAgenda(mid, aid) {
+  const text=(document.getElementById('eApText')?.value||'').trim();
+  const note=(document.getElementById('eApNote')?.value||'').trim();
+  const assignee=(document.getElementById('eApAssignee')?.value||undefined);
+  
+  if(!text){toast('Please enter a description','warning');return;}
+  const btn=document.getElementById('saveeApBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  
+  try {
+    const reqBody = {title:text, description:note||undefined};
+    // Send responsiblePerson or null if cleared
+    reqBody.responsiblePerson = assignee ? assignee : null;
+    
+    const r=await api(`/agenda/${aid}`, {method:'PUT', body:JSON.stringify(reqBody)});
+    if(r.success) {
+      const m=S.getMeeting(mid);
+      if(m && m.agendaPoints) {
+        const ap = m.agendaPoints.find(a => (a.id||a._id) === aid);
+        if(ap) {
+          ap.text = text;
+          ap.note = note;
+          let assignedUserDetails = null;
+          if(assignee) {
+             const p = m.participants.find(pt=>(pt.user?._id||pt.user)===assignee);
+             if(p) assignedUserDetails = p.user;
+          }
+          ap.assignedTo = assignedUserDetails;
+        }
+      }
+      closeModal();
+      await S.fetchMyTasks();
+      render();
+      toast('Agenda point updated!','success');
+    } else {
+      toast(r.message||'Failed to update', 'error');
+      btn.disabled=false;btn.textContent='Save Changes';
+    }
+  } catch {
+    toast('Network error — is the backend running?', 'error');
+    btn.disabled=false;btn.textContent='Save Changes';
+  }
+}
+
+// ─── Follow-up Meeting Modal ─────────────────────
+function showFollowUpModal(mid) {
+  const m = S.getMeeting(mid);
+  if(!m) return;
+  const o = document.createElement('div');
+  o.className = 'modal-overlay';
+  const defaultDate = new Date();
+  defaultDate.setDate(defaultDate.getDate() + 7); // Default to 1 week from now
+  const dtVal = defaultDate.toISOString().slice(0, 16);
+  
+  o.innerHTML=`<div class="modal">
+  <div class="modal-header"><h2 class="modal-title">Create Follow-Up</h2><button class="modal-close" onclick="closeModal()">×</button></div>
+  <div class="modal-body">
+    <p style="font-size:13px;color:var(--text3);margin-bottom:14px">This will create a new meeting with the same participants. All <b>open</b> agenda points will automatically be copied over.</p>
+    <div class="form-group"><label class="form-label">Title *</label>
+      <input class="form-input" id="fuTitle" type="text" value="Follow-up: ${(m.title||'').replace(/"/g,'&quot;')}" required></div>
+    <div class="form-group"><label class="form-label">Next Date & Time *</label>
+      <input class="form-input" id="fuDate" type="datetime-local" value="${dtVal}" required></div>
+    <div class="form-group"><label class="form-label">Location</label>
+      <input class="form-input" id="fuLocation" type="text" value="${(m.location||'').replace(/"/g,'&quot;')}"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="saveFuBtn" onclick="doCreateFollowUp('${mid}')"><i class="fas fa-arrow-right"></i> Create & Carry Forward</button>
+  </div></div>`;
+  document.body.appendChild(o);
+}
+
+async function doCreateFollowUp(mid) {
+  const title = (document.getElementById('fuTitle')?.value||'').trim();
+  const scheduledFor = document.getElementById('fuDate')?.value;
+  const location = (document.getElementById('fuLocation')?.value||'').trim();
+  
+  if(!title){toast('Title is required','warning');return;}
+  if(!scheduledFor){toast('Date is required','warning');return;}
+  
+  const btn = document.getElementById('saveFuBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+  
+  try {
+    const r = await api(`/meetings/${mid}/follow-up`, {
+      method: 'POST',
+      body: JSON.stringify({title, scheduledFor: new Date(scheduledFor).toISOString(), location: location || undefined})
+    });
+    if(r.success) {
+      toast('Follow-up created! Open tasks carried forward.', 'success');
+      closeModal();
+      await S.fetchMeetings();
+      await S.fetchMyTasks();
+      render();
+    } else {
+      toast(r.message || 'Failed to create follow-up', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-arrow-right"></i> Create & Carry Forward';
+    }
+  } catch(e) {
+    toast('Network error — is the backend running?', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-arrow-right"></i> Create & Carry Forward';
+  }
+}
+
 // ─── Boot ────────────────────────────────────────
 S.init();
 </script>

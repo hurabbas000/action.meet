@@ -41,15 +41,14 @@ router.post('/register', [
         }
 
         // Create new user
-        const user = new User({
+        const user = await User.create({
             name,
             email,
             password,
             phone,
-            role
+            role,
+            isActive: true
         });
-
-        await user.save();
 
         // Generate token
         const token = generateToken(user._id);

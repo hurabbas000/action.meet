@@ -242,4 +242,5 @@ agendaSchema.pre('save', async function() {
     }
 });
 
-module.exports = mongoose.model('Agenda', agendaSchema);
+const { createModel } = require('./modelHelper');
+module.exports = createModel('Agenda', agendaSchema, 'agendas');

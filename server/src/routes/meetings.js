@@ -195,8 +195,7 @@ router.post('/', [
 
         if (team) meetingData.team = team;
 
-        const meeting = new Meeting(meetingData);
-        await meeting.save();
+        const meeting = await Meeting.create(meetingData);
 
         // Populate and return
         await meeting.populate('host', 'name email');
@@ -209,6 +208,78 @@ router.post('/', [
         });
     } catch (error) {
         console.error('Create meeting error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+/**
+ * @route   POST /api/meetings/:id/follow-up
+ * @desc    Create a follow-up meeting, carrying forward open agenda points
+ * @access  Private (Meeting Host only)
+ */
+router.post('/:id/follow-up', [
+    authenticate,
+    body('title').trim().isLength({ min: 2, max: 200 }).withMessage('Title must be between 2 and 200 characters'),
+    body('scheduledFor').isISO8601().withMessage('Please provide a valid date')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+
+        const parentMeeting = await Meeting.findById(req.params.id);
+        if (!parentMeeting) return res.status(404).json({ success: false, message: 'Parent meeting not found' });
+
+        if (parentMeeting.host.toString() !== req.userId) {
+            return res.status(403).json({ success: false, message: 'Only host can create follow-up meetings' });
+        }
+
+        const { title, scheduledFor, description, location } = req.body;
+
+        // 1. Create the follow-up meeting (inheriting participants)
+        const followUpMeeting = await Meeting.create({
+            title,
+            description: description || parentMeeting.description,
+            scheduledFor: new Date(scheduledFor),
+            location: location || parentMeeting.location,
+            host: parentMeeting.host,
+            participants: parentMeeting.participants,
+            team: parentMeeting.team,
+            meetingType: 'recurring',
+            parentMeeting: parentMeeting._id || parentMeeting.id, // Link to parent
+            settings: parentMeeting.settings
+        });
+
+        // 2. Carry forward open agenda points
+        const Agenda = require('../models/Agenda');
+        const parentAgendas = await Agenda.find({ meeting: req.params.id }) || [];
+        
+        // Find unresolved points ("open", "in-progress", etc, but NOT "closed" or "completed")
+        const openAgendas = parentAgendas.filter(a => a.status !== 'closed' && a.status !== 'completed');
+
+        // Copy these points to the new meeting
+        for (const pa of openAgendas) {
+            await Agenda.create({
+                title: pa.title,
+                description: pa.description,
+                meeting: followUpMeeting._id || followUpMeeting.id,
+                priority: pa.priority,
+                responsiblePerson: pa.responsiblePerson,
+                status: 'open', // Reset to open
+                createdBy: req.userId
+            });
+        }
+
+        await followUpMeeting.populate('host', 'name email');
+        await followUpMeeting.populate('participants.user', 'name email');
+
+        res.status(201).json({
+            success: true,
+            message: 'Follow-up meeting created. ' + openAgendas.length + ' open tasks carried forward.',
+            data: { meeting: followUpMeeting }
+        });
+
+    } catch (error) {
+        console.error('Follow-up meeting error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });

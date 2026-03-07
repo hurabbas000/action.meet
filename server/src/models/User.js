@@ -78,4 +78,5 @@ userSchema.methods.getProfile = function() {
     return user;
 };
 
-module.exports = mongoose.model('User', userSchema);
+const { createModel } = require('./modelHelper');
+module.exports = createModel('User', userSchema, 'users');

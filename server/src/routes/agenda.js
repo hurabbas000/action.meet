@@ -66,7 +66,7 @@ router.get('/meeting/:meetingId', authenticate, async (req, res) => {
 router.post('/', [
     authenticate,
     body('title').trim().isLength({ min: 2, max: 200 }).withMessage('Title must be between 2 and 200 characters'),
-    body('meeting').isMongoId().withMessage('Valid meeting ID is required'),
+    body('meeting').notEmpty().withMessage('Valid meeting ID is required'),
     body('description').optional().trim().isLength({ max: 1000 }).withMessage('Description cannot exceed 1000 characters')
 ], async (req, res) => {
     try {
@@ -93,7 +93,7 @@ router.post('/', [
             return res.status(403).json({ success: false, message: 'Only the meeting host can create agenda items and assign tasks.' });
         }
 
-        const agenda = new Agenda({
+        const agenda = await Agenda.create({
             title,
             description,
             meeting,
@@ -108,9 +108,8 @@ router.post('/', [
                 assignedAt: new Date(),
                 assignedBy: req.userId
             };
+            await agenda.save();
         }
-
-        await agenda.save();
         await agenda.populate('responsiblePerson.user', 'name email');
         await agenda.populate('createdBy', 'name email');
 

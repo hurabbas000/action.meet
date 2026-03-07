@@ -10,6 +10,12 @@ const xss = require('xss');
 const hpp = require('hpp');
 require('dotenv').config();
 
+// Force Mock Mode if no remote DB is provided (Local DB is missing on this machine)
+if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost')) {
+    global.MOCK_DATABASE = true;
+    console.log('🚀 INITIALIZING IN MOCK DATABASE MODE');
+}
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -149,11 +155,18 @@ const connectDB = async () => {
         }
 
     } catch (err) {
-        console.error('❌ MongoDB connection error:', err);
-        process.exit(1); 
+        console.error('❌ MongoDB connection error:', err.message);
+        console.warn('🚀 SWITCHING TO MOCK DATABASE MODE (In-Memory Only)');
+        console.warn('⚠️ No local MongoDB installation found. Data will not persist.');
+        global.MOCK_DATABASE = true;
     }
 };
-connectDB();
+
+if (!global.MOCK_DATABASE) {
+    connectDB();
+} else {
+    console.log('🚀 RUNNING IN MOCK MODE: Database connection skipped.');
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

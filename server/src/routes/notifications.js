@@ -21,12 +21,18 @@ const authenticate = async (req, res, next) => {
 // Get user notifications
 router.get('/', authenticate, async (req, res) => {
     try {
-        // Placeholder for notifications
+        const store = require('../db/mockStore');
+        const notifications = (store.notifications || [])
+            .filter(n => (n.user?._id || n.user || '').toString() === req.userId.toString())
+            .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        const unreadCount = notifications.filter(n => !n.isRead).length;
+
         res.json({
             success: true,
             data: {
-                notifications: [],
-                unreadCount: 0
+                notifications,
+                unreadCount
             }
         });
     } catch (error) {

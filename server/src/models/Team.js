@@ -108,4 +108,5 @@ teamSchema.methods.removeMember = function(userId) {
     return this.save();
 };
 
-module.exports = mongoose.model('Team', teamSchema);
+const { createModel } = require('./modelHelper');
+module.exports = createModel('Team', teamSchema, 'teams');
