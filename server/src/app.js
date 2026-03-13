@@ -193,7 +193,18 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/recurring', recurringRoutes);
 
-// 404 handler
+// Serve static frontend files (Railway/Production)
+const path = require('path');
+const publicPath = path.join(__dirname, '../../client/public');
+app.use(express.static(publicPath));
+
+// Catch-all: serve index.html for any non-API routes
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+// 404 handler for API
 app.use(notFound);
 
 // Error handling middleware

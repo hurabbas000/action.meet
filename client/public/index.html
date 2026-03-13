@@ -260,9 +260,9 @@ body.compact-mode .content{padding:18px 22px}
 <div class="toasts" id="toasts"></div>
 
 <script>
-const API = window.location.hostname === 'actionmeet.up.railway.app'
-    ? 'https://actionmeet-api.up.railway.app/api'
-    : 'http://localhost:3001/api';
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3001/api'
+    : '/api';
 // ─── State ───────────────────────────────────────
 const S={
   user:null,token:null,view:'login',

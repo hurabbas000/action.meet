@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "npx serve -s client/public -l 3000",
+    "start": "node server/src/app.js",
     "build": "echo 'Static build complete'",
     "install-deps": "npm install serve"
   },
