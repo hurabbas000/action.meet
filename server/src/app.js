@@ -32,7 +32,18 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://*.firebaseapp.com", "https://*.googleapis.com"],
+            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            "img-src": ["'self'", "data:", "https://*.googleusercontent.com", "https://*.firebaseapp.com"],
+            "connect-src": ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "/api"]
+        },
+    },
+}));
 app.use(mongoSanitize());
 app.use(hpp());
 
