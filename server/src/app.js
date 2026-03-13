@@ -194,7 +194,6 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/recurring', recurringRoutes);
 
 // Serve static frontend files (Railway/Production)
-const path = require('path');
 const publicPath = path.join(__dirname, '../../client/public');
 app.use(express.static(publicPath));
 
