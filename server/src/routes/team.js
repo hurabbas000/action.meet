@@ -171,7 +171,7 @@ router.put('/:id', [
 // Add member to team
 router.post('/:id/members', [
     authenticate,
-    body('userId').isMongoId().withMessage('Valid user ID is required'),
+    body('userId').notEmpty().withMessage('Valid user ID is required'),
     body('role').optional().isIn(['admin', 'member', 'viewer']).withMessage('Invalid role')
 ], async (req, res) => {
     try {
@@ -300,21 +300,23 @@ router.get('/search/users', authenticate, async (req, res) => {
     try {
         const { q, limit = 10 } = req.query;
 
-        if (!q || q.length < 2) {
-            return res.status(400).json({ success: false, message: 'Search query must be at least 2 characters' });
+        let queryCriteria = { isActive: true };
+        
+        if (q && q.length >= 2) {
+            queryCriteria = {
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: q, $options: 'i' } },
+                            { email: { $regex: q, $options: 'i' } }
+                        ]
+                    },
+                    { isActive: true }
+                ]
+            };
         }
 
-        const users = await User.find({
-            $and: [
-                {
-                    $or: [
-                        { name: { $regex: q, $options: 'i' } },
-                        { email: { $regex: q, $options: 'i' } }
-                    ]
-                },
-                { isActive: true }
-            ]
-        })
+        const users = await User.find(queryCriteria)
         .select('name email phone')
         .limit(parseInt(limit));
 

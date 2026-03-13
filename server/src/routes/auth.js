@@ -215,10 +215,11 @@ router.put('/profile', [
             });
         }
 
-        const { name, phone, preferences } = req.body;
+        const { name, phone, preferences, avatar } = req.body;
 
         if (name) user.name = name;
         if (phone) user.phone = phone;
+        if (avatar) user.avatar = avatar;
         if (preferences) user.preferences = { ...user.preferences, ...preferences };
 
         await user.save();

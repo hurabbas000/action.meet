@@ -26,7 +26,38 @@ class MockModel {
                 if (idx !== -1) data[idx] = { ...this };
                 return this; 
             },
-            populate: async function() { return this; }, // Mock direct instance population
+            populate: async function(path, select) {
+                if (!path) return this;
+                
+                // Mongoose can pass an object { path: '...', select: '...' }
+                let actualPath = typeof path === 'object' ? path.path : path;
+                if (!actualPath || typeof actualPath !== 'string') return this;
+
+                // Simplified mock population
+                const paths = actualPath.split(' ');
+                for (const p of paths) {
+                    const [objPath, subField] = p.split('.');
+                    if (Array.isArray(this[objPath])) {
+                        for (let i = 0; i < this[objPath].length; i++) {
+                            const subDoc = this[objPath][i];
+                            const targetId = subField ? subDoc[subField] : subDoc;
+                            if (targetId) {
+                                // Direct lookup from store to avoid circular Dependency with models
+                                const found = (store.users || []).find(u => (u._id || u.id) === targetId.toString());
+                                if (found) {
+                                    if (subField) subDoc[subField] = found;
+                                    else this[objPath][i] = found;
+                                }
+                            }
+                        }
+                    } else if (this[objPath]) {
+                        const targetId = this[objPath];
+                        const found = (store.users || []).find(u => (u._id || u.id) === targetId.toString());
+                        if (found) this[objPath] = found;
+                    }
+                }
+                return this;
+            },
             toObject: function() { return { ...this }; },
             getProfile: function() {
                 const u = { ...this };
@@ -108,14 +139,30 @@ class MockModel {
     }
 
     _query(promises) {
+        let populationPaths = [];
         const query = {
-            then: (resolve, reject) => promises.then(res => resolve(this._wrap(res)), reject),
+            then: (resolve, reject) => promises.then(async res => {
+                const wrapped = this._wrap(res);
+                if (wrapped && populationPaths.length) {
+                    if (Array.isArray(wrapped)) {
+                        for (const doc of wrapped) {
+                            for (const p of populationPaths) await doc.populate(p.path, p.select);
+                        }
+                    } else {
+                        for (const p of populationPaths) await wrapped.populate(p.path, p.select);
+                    }
+                }
+                resolve(wrapped);
+            }, reject),
             select: () => query,
             sort: () => query,
             limit: () => query,
             skip: () => query,
-            populate: () => query,
-            exec: () => promises.then(res => this._wrap(res))
+            populate: (path, select) => {
+                populationPaths.push({ path, select });
+                return query;
+            },
+            exec: () => query.then(res => res)
         };
         return query;
     }

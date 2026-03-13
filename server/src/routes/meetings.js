@@ -344,7 +344,7 @@ router.put('/:id', [
  */
 router.post('/:id/participants', [
     authenticate,
-    body('userId').isMongoId().withMessage('Valid user ID is required')
+    body('userId').notEmpty().withMessage('Valid user ID is required')
 ], async (req, res) => {
     try {
         const errors = validationResult(req);

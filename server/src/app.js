@@ -58,8 +58,8 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Body parsing middleware
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Compression middleware
 app.use(compression());
@@ -112,7 +112,11 @@ const connectDB = async () => {
               { name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
               { name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
               { name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
-              { name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true }
+              { name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true },
+              { name: 'Eddie Engineer', email: 'eddie@test.com', password: pwd, role: 'member', isActive: true },
+              { name: 'Fiona Finance', email: 'fiona@test.com', password: pwd, role: 'member', isActive: true },
+              { name: 'George Growth', email: 'george@test.com', password: pwd, role: 'member', isActive: true },
+              { name: 'Hannah HR', email: 'hannah@test.com', password: pwd, role: 'member', isActive: true }
             ]);
 
             const team1 = await Team.create({

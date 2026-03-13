@@ -40,6 +40,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .nav-badge{margin-left:auto;background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
 .nav-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:12px 12px 4px;font-weight:600}
 .sidebar-bottom{padding:12px;border-top:1px solid var(--border)}
+/* ── Collapsed Sidebar ── */
+.sidebar{transition:width .2s ease}
+.sidebar.collapsed{width:70px}
+.sidebar.collapsed .brand-name, .sidebar.collapsed .brand-tag, .sidebar.collapsed .user-name, .sidebar.collapsed .user-role, .sidebar.collapsed .nav-item span, .sidebar.collapsed .nav-badge{display:none}
+.sidebar.collapsed .brand{padding:24px 17px 20px}
+.sidebar.collapsed .user-card{padding:10px;justify-content:center}
+.sidebar.collapsed .avatar{width:32px;height:32px;font-size:13px}
+.sidebar.collapsed .nav-item{justify-content:center;padding:12px 0}
+.sidebar.collapsed .nav-item i{margin:0;font-size:16px}
 /* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
 .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
@@ -251,14 +260,16 @@ body.compact-mode .content{padding:18px 22px}
 <div class="toasts" id="toasts"></div>
 
 <script>
-const API='http://localhost:3001/api';
+const API = window.location.hostname === 'actionmeet.up.railway.app'
+    ? 'https://actionmeet-api.up.railway.app/api'
+    : 'http://localhost:3001/api';
 // ─── State ───────────────────────────────────────
 const S={
   user:null,token:null,view:'login',
   meetings:[],team:[],myTasks:[],notifs:[],
   sel:null,filter:'all',loginTab:'login',
   searchParticipants:[],selectedParticipants:[],
-  settings:{theme:'dark',compactMode:false},
+  settings:{theme:'dark',compactMode:false,sidebarCollapsed:false},
   init(){
     const set=localStorage.getItem('am_settings');
     if(set)this.settings={...this.settings,...JSON.parse(set)};
@@ -302,7 +313,7 @@ const S={
     try{const r=await api('/team');
       if(r.success){const m={};
         this.teamRaw=r.data.teams||[];
-        this.teamRaw.forEach(t=>(t.members||[]).forEach(mb=>{
+        this.teamRaw.forEach(t=>(t.members||[]).filter(m=>m.isActive!==false).forEach(mb=>{
           if(mb.user&&!m[mb.user._id])m[mb.user._id]={
             id:mb.user._id,name:mb.user.name||mb.user.email,
             email:mb.user.email,phone:mb.user.phone||'',
@@ -454,7 +465,7 @@ function renderLayout(){
   const views={dashboard:'Dashboard',meetings:'All Meetings',mytasks:'My Tasks',recurring:'Recurring',notifications:'Notifications',team:'Team',settings:'Settings',detail:'Meeting Detail'};
   const notifCount=S.notifs.filter(n=>!n.read).length;
   return`<div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar ${S.settings.sidebarCollapsed?'collapsed':''}">
     <div class="brand"><div class="brand-icon"><img src="/assets/logo.png" alt="AM"></div><div><div class="brand-name">ActionMeet</div><div class="brand-tag">v1.0</div></div></div>
     <div class="user-card">
       <div class="avatar">${S.user.av||'U'}</div>
@@ -473,7 +484,8 @@ function renderLayout(){
       </div>
     </nav>
     <div class="sidebar-bottom">
-      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="width:100%"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      <button class="btn btn-ghost btn-sm" id="collapseBtn" style="width:100%;margin-bottom:8px" title="Toggle Sidebar"><i class="fas ${S.settings.sidebarCollapsed?'fa-chevron-right':'fa-chevron-left'}"></i> <span style="${S.settings.sidebarCollapsed?'display:none':''}">${S.settings.sidebarCollapsed?'':'Collapse'}</span></button>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn" style="width:100%" title="Logout"><i class="fas fa-sign-out-alt"></i> <span style="${S.settings.sidebarCollapsed?'display:none':''}">Logout</span></button>
     </div>
   </aside>
   <div class="main">
@@ -495,6 +507,11 @@ function hookApp(){
     if(S.view==='dashboard'){await S.fetchMeetings();render();}
   });
   document.getElementById('logoutBtn')?.addEventListener('click',()=>S.logout());
+  document.getElementById('collapseBtn')?.addEventListener('click',()=>{
+    S.settings.sidebarCollapsed = !S.settings.sidebarCollapsed;
+    S.applySettings();
+    render();
+  });
   document.getElementById('fabBtn')?.addEventListener('click',()=>{
     if(S.view==='team') showCreateTeamModal();
     else showNewMeetingModal();
@@ -748,7 +765,7 @@ function renderNotifs(){
 }
 // Team
 function renderTeam(){
-  if(!S.teamRaw.length)return empty('fa-users','No teams yet','Click the + button below to create your first team and add members.');
+  if(!S.teamRaw.length) return empty('fa-users','No teams yet','Click the button below to create your first team and add members.') + `<div style="text-align:center;margin-top:-20px"><button class="btn btn-primary btn-sm" onclick="showCreateTeamModal()"><i class="fas fa-plus"></i> Create Workspace Team</button></div>`;
   
   return `<div class="section-header" style="margin-bottom:24px">
     <h2 class="section-title">Your Teams</h2>
@@ -766,18 +783,57 @@ function renderTeam(){
         ${isAdmin?`<button class="btn btn-primary btn-sm" onclick="showAddMemberModal('${t._id}')"><i class="fas fa-user-plus"></i> Add Member</button>`:''}
       </div>
       <div class="team-grid">
-        ${(t.members||[]).map(m=>{
+        ${(t.members||[]).filter(m=>m.isActive!==false).map(m=>{
           const u=m.user;if(!u)return'';
           return`<div class="team-card">
             <div class="team-avatar">${(u.name||u.email||'U')[0].toUpperCase()}</div>
             <div class="team-name">${u.name||u.email}</div>
             <div class="team-email">${u.email}</div>
             <span class="badge ${m.role==='admin'?'host':'participant'}" style="margin-top:8px">${m.role}</span>
+            ${isAdmin && u._id !== S.user?._id ? `
+            <div style="display:flex;gap:4px;margin-top:12px;width:100%">
+              <select class="form-input" style="padding:4px 6px;font-size:11px;height:auto;flex:1" onchange="doEditMemberRole('${t._id}', '${u._id}', this.value)">
+                <option value="member" ${m.role==='member'?'selected':''}>Member</option>
+                <option value="admin" ${m.role==='admin'?'selected':''}>Admin</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" style="color:var(--danger);padding:4px 8px" title="Remove Member" onclick="doRemoveMember('${t._id}', '${u._id}', '${(u.name||u.email).replace(/'/g,"\\'")}')"><i class="fas fa-user-times"></i></button>
+            </div>
+            ` : ''}
           </div>`;
         }).join('')}
       </div>
     </div>
   `}).join('')}`;
+}
+async function doEditMemberRole(teamId, userId, newRole) {
+  try {
+    const r = await api(`/team/${teamId}/members/${userId}`, {method: 'PUT', body: JSON.stringify({role: newRole})});
+    if(r.success) {
+      toast('Member role updated!', 'success');
+      await S.fetchTeam(); render();
+    } else {
+      toast(r.message || 'Failed to update role', 'error');
+      // Revert select dropdown implicitly by re-rendering original state
+      render();
+    }
+  } catch(e) {
+    toast('Network error saving role', 'error');
+    render();
+  }
+}
+async function doRemoveMember(teamId, userId, userName) {
+  if(!confirm(`Are you sure you want to remove ${userName} from this workspace?\n\nThey will instantly lose access to all tasks and meeting notes.`)) return;
+  try {
+    const r = await api(`/team/${teamId}/members/${userId}`, {method: 'DELETE'});
+    if(r.success) {
+      toast('Member successfully removed', 'success');
+      await S.fetchTeam(); render();
+    } else {
+      toast(r.message || 'Failed to remove member', 'error');
+    }
+  } catch(e) {
+    toast('Network error removing member', 'error');
+  }
 }
 // ─── Settings ────────────────────────────────────
 function renderSettings(){
@@ -786,7 +842,6 @@ function renderSettings(){
     {id:'profile',    icon:'fa-user-circle', label:'Profile'},
     {id:'notifs',     icon:'fa-bell',        label:'Notifications'},
     {id:'tasks',      icon:'fa-tasks',       label:'Tasks'},
-    {id:'permissions',icon:'fa-shield-alt',  label:'Permissions'},
     {id:'workspace',  icon:'fa-building',    label:'Workspace'},
     {id:'appearance', icon:'fa-paint-brush', label:'Appearance'},
     {id:'security',   icon:'fa-lock',        label:'Security'},
@@ -803,8 +858,9 @@ function renderSettings(){
   const profilePanel=sec('Personal Information','fa-id-card',`
     <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:20px">
       <div style="position:relative">
-        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff">${(u.name||u.email||'U')[0].toUpperCase()}</div>
-        <button onclick="toast('Profile photo upload coming soon!','info')" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--primary);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px"><i class="fas fa-camera"></i></button>
+        ${u.av && u.av.startsWith('data:image') ? `<img src="${u.av}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.1)">` : `<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff">${(u.name||u.email||'U')[0].toUpperCase()}</div>`}
+        <button onclick="document.getElementById('avatarUpload').click()" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--primary);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px"><i class="fas fa-camera"></i></button>
+        <input type="file" id="avatarUpload" accept="image/*" capture="user" style="display:none" onchange="uploadAvatar(this)">
       </div>
       <div style="flex:1;min-width:200px">
         <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="sp_name" type="text" value="${(u.name||'').replace(/"/g,'&quot;')}" placeholder="Your name"></div>
@@ -821,12 +877,7 @@ function renderSettings(){
   `);
   // ────────── NOTIFICATIONS ──────────
   const notifsPanel=sec('Notification Preferences','fa-bell',`
-    ${row('Meeting Reminders','Get notified before your meetings start',tog(ss.meetingReminders!==false,`saveSetting('meetingReminders',this.checked)`))}
-    ${row('Agenda Update Alerts','Notify when agenda items are added or changed',tog(ss.agendaAlerts!==false,`saveSetting('agendaAlerts',this.checked)`))}
-    ${row('Task Deadline Alerts','Warn you when a task due date is approaching',tog(ss.taskDeadlines!==false,`saveSetting('taskDeadlines',this.checked)`))}
-    ${row('Daily Task Summary','Receive a daily digest of your open tasks',tog(ss.dailySummary||false,`saveSetting('dailySummary',this.checked)`))}
-    ${row('Email Notifications','Also send updates to your email address',tog(ss.emailNotifs||false,`saveSetting('emailNotifs',this.checked)`))}
-    <div style="padding-top:2px">${row('Reminder Lead Time','Minutes before meeting to notify you',`<select class="form-input" style="max-width:120px" onchange="saveSetting('reminderTime',this.value)">${[5,10,15,30,60].map(m=>`<option value="${m}" ${(ss.reminderTime||15)==m?'selected':''}>${m} min</option>`).join('')}</select>`)}</div>
+    ${row('Enable Reminders','Get notified before your meetings start or tasks are due',tog(ss.meetingReminders!==false,`saveSetting('meetingReminders',this.checked)`))}
   `);
   // ────────── TASKS ──────────
   const tasksPanel=sec('Task Management Preferences','fa-check-square',`
@@ -838,37 +889,17 @@ function renderSettings(){
     ${row('Task Reminders','Send reminders for upcoming deadlines',tog(ss.taskReminders!==false,`saveSetting('taskReminders',this.checked)`))}
     <div style="padding-top:2px">${row('Default Priority','Default when creating a new task',`<select class="form-input" style="max-width:120px" onchange="saveSetting('defaultPriority',this.value)">${['Low','Medium','High'].map(p=>`<option value="${p.toLowerCase()}" ${(ss.defaultPriority||'medium')===p.toLowerCase()?'selected':''}>${p}</option>`).join('')}</select>`)}</div>
   `);
-  // ────────── PERMISSIONS ──────────
-  const permsPanel=sec('Admin Permissions','fa-user-shield',`
-    ${row('Create Meetings','Admins can create meetings','<span class="badge host">Always On</span>')}
-    ${row('Edit Agendas','Admins can modify any agenda item','<span class="badge host">Always On</span>')}
-    ${row('Assign Tasks','Admins can assign tasks to any member','<span class="badge host">Always On</span>')}
-    ${row('Remove Members','Admins can remove members from workspace','<span class="badge host">Always On</span>')}
-    ${row('Change Member Roles','Admins can promote or demote members','<span class="badge host">Always On</span>')}
-  `)+sec('Member Permissions','fa-users',`
-    ${row('View Agenda Items','Members can see all agenda items in their meetings',tog(ss.memberViewAgenda!==false,`saveSetting('memberViewAgenda',this.checked)`))}
-    ${row('Mark Tasks Complete','Members can check off their assigned tasks',tog(ss.memberCompleteTasks!==false,`saveSetting('memberCompleteTasks',this.checked)`))}
-    ${row('Suggest Agenda Points','Members can propose new agenda items',tog(ss.memberSuggestAgenda||false,`saveSetting('memberSuggestAgenda',this.checked)`))}
-    ${row('Edit Their Tasks','Members can edit tasks assigned to them',tog(ss.memberEditTasks||false,`saveSetting('memberEditTasks',this.checked)`))}
-    ${row('Comment on Tasks','Members can add comments on tasks',tog(ss.memberComments||false,`saveSetting('memberComments',this.checked)`))}
-    ${row('Only Admin Can Assign','Prevent members from self-assigning',tog(ss.onlyAdminAssigns||false,`saveSetting('onlyAdminAssigns',this.checked)`))}
-  `);
   // ────────── WORKSPACE ──────────
-  const workspacePanel=sec('Workspace Details','fa-building',`
-    <div class="form-group"><label class="form-label">Workspace Name</label><input class="form-input" id="ws_name" type="text" value="${(ss.workspaceName||'').replace(/"/g,'&quot;')}" placeholder="e.g. Research Lab Team"></div>
-    <div class="form-group"><label class="form-label">Organization Description</label><textarea class="form-input" id="ws_desc" rows="2" placeholder="Brief description of your team's purpose">${ss.workspaceDesc||''}</textarea></div>
+  const workspacePanel=sec('Workspace Management','fa-building',`
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Manage your workspace members and their roles.</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
-      <button class="btn btn-primary" onclick="saveWorkspaceSettings()"><i class="fas fa-save"></i> Save</button>
-      <button class="btn btn-ghost" onclick="toast('Invite flow coming soon!','info')"><i class="fas fa-envelope"></i> Invite by Email</button>
+      <button class="btn btn-primary" onclick="S.view='team';render()"><i class="fas fa-user-plus"></i> Invite Members</button>
+      <button class="btn btn-ghost" onclick="S.view='team';render()"><i class="fas fa-user-shield"></i> Manage Roles</button>
     </div>
-    <div style="padding:2px 0;border-top:1px solid var(--border)">${row('Default Member Role','Role assigned to newly invited members',`<select class="form-input" style="max-width:120px" onchange="saveSetting('defaultRole',this.value)"><option value="member" ${ss.defaultRole!=='admin'?'selected':''}>Member</option><option value="admin" ${ss.defaultRole==='admin'?'selected':''}>Admin</option></select>`)}</div>
   `);
   // ────────── APPEARANCE ──────────
   const appearancePanel=sec('Appearance & Display','fa-paint-brush',`
     ${row('Theme Mode','Choose your preferred app appearance',`<div style="display:flex;gap:6px;background:var(--bg3);padding:4px;border-radius:10px"><button class="btn ${ss.theme!=='light'?'btn-primary':'btn-ghost'}" style="padding:6px 12px" onclick="setTheme('dark')"><i class="fas fa-moon"></i> Dark</button><button class="btn ${ss.theme==='light'?'btn-primary':'btn-ghost'}" style="padding:6px 12px" onclick="setTheme('light')"><i class="fas fa-sun"></i> Light</button></div>`)}
-    ${row('Compact Layout','Reduce padding to fit more on screen',tog(ss.compactMode||false,`toggleCompact(this.checked)`))}
-    ${row('Font Size','Adjust base text size for readability',`<select class="form-input" style="max-width:120px" onchange="saveSetting('fontSize',this.value);document.documentElement.style.fontSize=this.value"><option value="13px" ${(ss.fontSize||'14px')==='13px'?'selected':''}>Small</option><option value="14px" ${(ss.fontSize||'14px')==='14px'?'selected':''}>Medium</option><option value="16px" ${(ss.fontSize||'14px')==='16px'?'selected':''}>Large</option></select>`)}
-    ${row('Dashboard Layout','Card columns in main view',`<select class="form-input" style="max-width:120px" onchange="saveSetting('dashLayout',this.value);render()"><option value="2" ${(ss.dashLayout||'2')==='2'?'selected':''}>2 Columns</option><option value="1" ${ss.dashLayout==='1'?'selected':''}>1 Column</option></select>`)}
     ${row('Accent Color','Primary highlight color',`<div style="display:flex;gap:8px;align-items:center">${['#4F46E5','#0EA5E9','#10B981','#F59E0B','#EF4444','#8B5CF6'].map(c=>`<div onclick="setAccentColor('${c}')" style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;box-shadow:${(ss.accentColor||'#4F46E5')===c?'0 0 0 3px var(--bg),0 0 0 5px '+c:'none'};transition:.2s"></div>`).join('')}</div>`)}
   `);
   // ────────── DATA & SECURITY ──────────
@@ -891,7 +922,7 @@ function renderSettings(){
     </div>
   `);
 
-  const panels={profile:profilePanel,notifs:notifsPanel,tasks:tasksPanel,permissions:permsPanel,workspace:workspacePanel,appearance:appearancePanel,security:securityPanel};
+  const panels={profile:profilePanel,notifs:notifsPanel,tasks:tasksPanel,workspace:workspacePanel,appearance:appearancePanel,security:securityPanel};
   return`<div class="section-header" style="margin-bottom:24px">
     <h2 style="font-size:22px;font-weight:800">Settings</h2>
     <span style="font-size:13px;color:var(--text3)">Manage your account & workspace</span>
@@ -925,6 +956,38 @@ async function saveProfile(){
     toast('Profile updated!','success');render();
   }catch{toast('Profile saved locally','info');render();}
 }
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    
+    // Optimistic UI update
+    const previousAv = S.user.av;
+    S.user.av = base64;
+    localStorage.setItem('am_u',JSON.stringify(S.user));
+    render();
+    
+    try {
+      const r = await api('/auth/profile', {method: 'PUT', body: JSON.stringify({avatar: base64})});
+      if(r.success) {
+        toast('Profile picture updated!', 'success');
+      } else {
+        S.user.av = previousAv;
+        localStorage.setItem('am_u',JSON.stringify(S.user));
+        toast('Failed to upload picture', 'error');
+        render();
+      }
+    } catch(err) {
+      S.user.av = previousAv;
+      localStorage.setItem('am_u',JSON.stringify(S.user));
+      toast('Network error during upload', 'error');
+      render();
+    }
+  };
+  reader.readAsDataURL(file);
+}
 async function changePassword(){
   const op=document.getElementById('sp_oldpw')?.value||'';
   const np=document.getElementById('sp_newpw')?.value||'';
@@ -933,7 +996,7 @@ async function changePassword(){
   if(np!==cp){toast('New passwords do not match','error');return;}
   if(np.length<6){toast('Password must be at least 6 characters','warning');return;}
   try{
-    const r=await api('/auth/changepassword',{method:'PUT',body:JSON.stringify({currentPassword:op,newPassword:np})});
+    const r=await api('/auth/password',{method:'PUT',body:JSON.stringify({currentPassword:op,newPassword:np})});
     if(r.success){toast('Password changed successfully!','success');}
     else toast(r.message||'Failed to change password','error');
   }catch{toast('Network error','error');}
@@ -1273,13 +1336,16 @@ function showAddMemberModal(tid){
     <button class="btn btn-primary" id="addMemBtn" disabled onclick="doAddMember('${tid}')">Add Member</button>
   </div></div>`;
   document.body.appendChild(o);
+  
+  // Instantly populate with dummy available users
+  searchTeamUsers(tid, true);
 }
 let tmSearchTimer=null;
 let tmDraftUser=null;
-async function searchTeamUsers(tid){
+async function searchTeamUsers(tid, showAll=false){
   const q=document.getElementById('tmPartQ')?.value||'';
   const res=document.getElementById('tmPartResults');
-  if(q.length<2){res.style.display='none';return;}
+  if(!showAll && q.length<2){res.style.display='none';return;}
   clearTimeout(tmSearchTimer);
   tmSearchTimer=setTimeout(async()=>{
     try{
