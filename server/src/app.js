@@ -84,32 +84,8 @@ if (process.env.NODE_ENV === 'development') {
 const path = require('path');
 const fs = require('fs');
 
-const connectDB = async () => {
+const seedData = async () => {
     try {
-        let dbUri = process.env.MONGODB_URI;
-
-        if (!dbUri || dbUri.includes('localhost')) {
-            const { MongoMemoryServer } = require('mongodb-memory-server');
-
-            // Persist DB data so users/meetings survive server restarts
-            const dbPath = path.join(__dirname, '../../.mongo-test-db');
-            if (!fs.existsSync(dbPath)) fs.mkdirSync(dbPath, { recursive: true });
-
-            const mongoServer = await MongoMemoryServer.create({
-                instance: {
-                    dbPath,
-                    storageEngine: 'wiredTiger'
-                }
-            });
-
-            dbUri = mongoServer.getUri();
-            console.log('✅ Using persistent MongoDB (local storage)');
-        }
-
-        await mongoose.connect(dbUri);
-        console.log('✅ Connected to MongoDB');
-
-        // Auto-seed if empty
         const User = require('./models/User');
         if (await User.countDocuments() === 0) {
             console.log('🌱 Database is empty. Auto-seeding dummy data...');
@@ -168,12 +144,42 @@ const connectDB = async () => {
 
             console.log('✅ Auto-seed complete. Login with alice@test.com / password123');
         }
+    } catch (err) {
+        console.error('❌ Seeding error:', err.message);
+    }
+};
 
+const connectDB = async () => {
+    try {
+        let dbUri = process.env.MONGODB_URI;
+
+        if (!dbUri || dbUri.includes('localhost')) {
+            const { MongoMemoryServer } = require('mongodb-memory-server');
+
+            // Persist DB data so users/meetings survive server restarts
+            const dbPath = path.join(__dirname, '../../.mongo-test-db');
+            if (!fs.existsSync(dbPath)) fs.mkdirSync(dbPath, { recursive: true });
+
+            const mongoServer = await MongoMemoryServer.create({
+                instance: {
+                    dbPath,
+                    storageEngine: 'wiredTiger'
+                }
+            });
+
+            dbUri = mongoServer.getUri();
+            console.log('✅ Using persistent MongoDB (local storage)');
+        }
+
+        await mongoose.connect(dbUri);
+        console.log('✅ Connected to MongoDB');
+        await seedData();
     } catch (err) {
         console.error('❌ MongoDB connection error:', err.message);
         console.warn('🚀 SWITCHING TO MOCK DATABASE MODE (In-Memory Only)');
         console.warn('⚠️ No local MongoDB installation found. Data will not persist.');
         global.MOCK_DATABASE = true;
+        await seedData();
     }
 };
 
@@ -181,6 +187,7 @@ if (!global.MOCK_DATABASE) {
     connectDB();
 } else {
     console.log('🚀 RUNNING IN MOCK MODE: Database connection skipped.');
+    seedData();
 }
 
 // Health check endpoint
