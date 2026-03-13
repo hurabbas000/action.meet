@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node server/src/app.js",
     "build": "echo 'Static build complete'",
-    "install-deps": "npm install serve"
+    "install-deps": "npm install serve",
+    "postinstall": "cd server && npm install"
   },
   "dependencies": {
     "serve": "^14.2.1"
