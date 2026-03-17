@@ -13,30 +13,45 @@ const store = {
 };
 
 // Helper to seed initial data
-const seed = async () => {
-    const pwd = await bcrypt.hash('password123', 10);
+const seed = () => {
+    const pwd = bcrypt.hashSync('password123', 10);
+    const AliceId = 'user_alice_admin_123';
+    const BobId = 'user_bob_builder_456';
+    const CharlieId = 'user_charlie_ceo_789';
+    const DianaId = 'user_diana_design_012';
+
     store.users = [
-        { _id: 'u1', name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
-        { _id: 'u2', name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
-        { _id: 'u3', name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
-        { _id: 'u4', name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true },
+        { _id: AliceId, name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
+        { _id: BobId, name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
+        { _id: CharlieId, name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
+        { _id: DianaId, name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true },
         { _id: 'u5', name: 'Eddie Engineer', email: 'eddie@test.com', password: pwd, role: 'member', isActive: true },
         { _id: 'u6', name: 'Fiona Finance', email: 'fiona@test.com', password: pwd, role: 'member', isActive: true },
         { _id: 'u7', name: 'George Growth', email: 'george@test.com', password: pwd, role: 'member', isActive: true },
         { _id: 'u8', name: 'Hannah HR', email: 'hannah@test.com', password: pwd, role: 'member', isActive: true }
     ];
     store.teams = [
-        { _id: 't1', name: 'Frontend Engineering', description: 'The team building the ActionMeet web app.', createdBy: 'u1', members: [{ user: 'u1', role: 'admin' }, { user: 'u2', role: 'member' }], isActive: true },
-        { _id: 't2', name: 'Executive Leadership', description: 'High-level strategy planning.', createdBy: 'u3', members: [{ user: 'u3', role: 'admin' }, { user: 'u1', role: 'member' }], isActive: true }
+        { _id: 'team_frontend_123', name: 'Frontend Engineering', description: 'The team building the ActionMeet web app.', createdBy: AliceId, members: [{ user: AliceId, role: 'admin', joinedAt: new Date(), isActive: true }, { user: BobId, role: 'member', joinedAt: new Date(), isActive: true }], isActive: true },
+        { _id: 'team_leadership_456', name: 'Executive Leadership', description: 'High-level strategy planning.', createdBy: CharlieId, members: [{ user: CharlieId, role: 'admin', joinedAt: new Date(), isActive: true }, { user: AliceId, role: 'member', joinedAt: new Date(), isActive: true }], isActive: true }
     ];
+
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
     store.meetings = [
-        { _id: 'm1', title: 'Weekly UI Sync', description: 'Sync on the latest dashboard redesign.', host: 'u1', team: 't1', participants: [{ user: 'u2', status: 'confirmed' }, { user: 'u4', status: 'invited' }], scheduledFor: new Date(Date.now() + 86400000), status: 'scheduled' }
+        { _id: 'meeting_ui_sync_123', title: 'Weekly UI Sync', description: 'Sync on the latest dashboard redesign.', host: AliceId, team: 'team_frontend_123', participants: [{ user: BobId, status: 'confirmed' }, { user: DianaId, status: 'invited' }], scheduledFor: futureDate, meetingType: 'recurring', status: 'scheduled' },
+        { _id: 'meeting_kickoff_456', title: 'Q1 Kickoff Review', description: 'Past meeting to review Q1 metrics.', host: CharlieId, participants: [{ user: AliceId, status: 'attended' }], scheduledFor: pastDate, meetingType: 'regular', status: 'completed' }
     ];
-    store.notifications = [
-        { _id: 'n1', user: 'u1', text: 'Welcome to ActionMeet!', type: 'info', createdAt: new Date(), isRead: false },
-        { _id: 'n2', user: 'u1', text: 'New meeting scheduled: Weekly Sync', type: 'success', createdAt: new Date(), isRead: false }
+    store.agendas = [
+        { _id: 'a1', meeting: 'meeting_ui_sync_123', title: 'Finalize Dark Mode CSS', description: 'Check color palette.', status: 'open', responsiblePerson: { user: AliceId }, order: 1, createdBy: AliceId },
+        { _id: 'a2', meeting: 'meeting_ui_sync_123', title: 'Add Member API Integration', description: 'Hook up modal.', status: 'open', responsiblePerson: { user: BobId }, order: 2, createdBy: AliceId },
+        { _id: 'a3', meeting: 'meeting_kickoff_456', title: 'Review Revenue Numbers', description: 'Check MRR.', status: 'completed', responsiblePerson: { user: CharlieId }, order: 1, createdBy: CharlieId },
+        { _id: 'a4', meeting: 'meeting_kickoff_456', title: 'Investigate server crash', description: 'Port 3001.', status: 'open', responsiblePerson: { user: AliceId }, order: 2, createdBy: CharlieId }
     ];
-    console.log('🌱 Mock Store seeded with initial users, teams, and meetings.');
+    store.meetings[0].agenda = ['a1', 'a2'];
+    store.meetings[1].agenda = ['a3', 'a4'];
+    console.log(`🌱 Mock Store seeded with ${store.users.length} users, ${store.teams.length} teams, and ${store.meetings.length} meetings.`);
 };
 
 seed();

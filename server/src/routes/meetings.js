@@ -5,23 +5,7 @@ const RecurringMeeting = require('../models/RecurringMeeting');
 const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
-
-// Middleware to verify authentication (simplified for demo)
-const authenticate = async (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-        return res.status(401).json({ success: false, message: 'No token provided' });
-    }
-    
-    try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        req.userId = decoded.userId;
-        next();
-    } catch (error) {
-        res.status(401).json({ success: false, message: 'Invalid token' });
-    }
-};
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @route   GET /api/meetings
@@ -58,23 +42,29 @@ router.get('/', authenticate, async (req, res) => {
 
         // Map meetings to frontend-friendly format
         const mappedMeetings = meetings.map(m => {
-            const obj = m.toObject({ virtuals: true });
+            const obj = typeof m.toObject === 'function' ? m.toObject({ virtuals: true }) : m;
+            
             // Compute frontend status
             if (m.status === 'cancelled') obj.status = 'cancelled';
             else if (m.status === 'completed') obj.status = 'past';
-            else if (m.scheduledFor > now) obj.status = 'upcoming';
+            else if (new Date(m.scheduledFor) > now) obj.status = 'upcoming';
             else obj.status = 'past';
 
             // Map agenda items to agendaPoints for frontend
-            obj.agendaPoints = (obj.agenda || []).map(a => ({
-                id: a._id,
-                _id: a._id,
-                text: a.title || a.description || '',
-                note: a.description || '',
-                status: a.status === 'completed' ? 'closed' : 'open',
-                assignedTo: a.responsiblePerson?.user || null,
-                carriedForward: a.carriedForward || false
-            }));
+            // Support both populated and ID-only agenda items
+            const rawAgenda = obj.agenda || [];
+            obj.agendaPoints = rawAgenda.map(a => {
+                const isPopulated = a && typeof a === 'object' && (a._id || a.id);
+                return {
+                    id: isPopulated ? (a._id || a.id) : a,
+                    _id: isPopulated ? (a._id || a.id) : a,
+                    text: isPopulated ? (a.title || a.description || 'Untitled Item') : 'Agenda Item',
+                    note: isPopulated ? (a.description || '') : '',
+                    status: isPopulated ? (a.status === 'completed' || a.status === 'closed' ? 'closed' : 'open') : 'open',
+                    assignedTo: isPopulated ? (a.responsiblePerson?.user || null) : null,
+                    carriedForward: isPopulated ? (a.carriedForward || false) : false
+                };
+            });
 
             return obj;
         });
@@ -265,7 +255,8 @@ router.post('/:id/follow-up', [
                 priority: pa.priority,
                 responsiblePerson: pa.responsiblePerson,
                 status: 'open', // Reset to open
-                createdBy: req.userId
+                createdBy: req.userId,
+                carriedForward: true
             });
         }
 

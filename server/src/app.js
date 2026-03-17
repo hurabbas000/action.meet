@@ -95,11 +95,16 @@ const seedData = async () => {
             const Agenda = require('./models/Agenda');
 
             const pwd = await bcrypt.hash('password123', 10);
+            const AliceId = 'user_alice_admin_123';
+            const BobId = 'user_bob_builder_456';
+            const CharlieId = 'user_charlie_ceo_789';
+            const DianaId = 'user_diana_design_012';
+
             const users = await User.insertMany([
-              { name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
-              { name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
-              { name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
-              { name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true },
+              { _id: AliceId, name: 'Alice Admin', email: 'alice@test.com', password: pwd, role: 'admin', isActive: true },
+              { _id: BobId, name: 'Bob Builder', email: 'bob@test.com', password: pwd, role: 'member', isActive: true },
+              { _id: CharlieId, name: 'Charlie CEO', email: 'charlie@test.com', password: pwd, role: 'admin', isActive: true },
+              { _id: DianaId, name: 'Diana Design', email: 'diana@test.com', password: pwd, role: 'member', isActive: true },
               { name: 'Eddie Engineer', email: 'eddie@test.com', password: pwd, role: 'member', isActive: true },
               { name: 'Fiona Finance', email: 'fiona@test.com', password: pwd, role: 'member', isActive: true },
               { name: 'George Growth', email: 'george@test.com', password: pwd, role: 'member', isActive: true },
@@ -107,13 +112,15 @@ const seedData = async () => {
             ]);
 
             const team1 = await Team.create({
-              name: 'Frontend Engineering', description: 'The team building the ActionMeet web app.', createdBy: users[0]._id,
-              members: [{ user: users[0]._id, role: 'admin', joinedAt: new Date(), isActive: true }, { user: users[1]._id, role: 'member', joinedAt: new Date(), isActive: true }]
+              _id: 'team_frontend_123',
+              name: 'Frontend Engineering', description: 'The team building the ActionMeet web app.', createdBy: AliceId,
+              members: [{ user: AliceId, role: 'admin', joinedAt: new Date(), isActive: true }, { user: BobId, role: 'member', joinedAt: new Date(), isActive: true }]
             });
             
             const team2 = await Team.create({
-              name: 'Executive Leadership', description: 'High-level strategy planning.', createdBy: users[2]._id,
-              members: [{ user: users[2]._id, role: 'admin', joinedAt: new Date(), isActive: true }, { user: users[0]._id, role: 'member', joinedAt: new Date(), isActive: true }]
+              _id: 'team_leadership_456',
+              name: 'Executive Leadership', description: 'High-level strategy planning.', createdBy: CharlieId,
+              members: [{ user: CharlieId, role: 'admin', joinedAt: new Date(), isActive: true }, { user: AliceId, role: 'member', joinedAt: new Date(), isActive: true }]
             });
 
             const now = new Date();
@@ -121,22 +128,24 @@ const seedData = async () => {
             const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
             const m1 = await Meeting.create({
-              title: 'Weekly UI Sync', description: 'Sync on the latest dashboard redesign.', host: users[0]._id, team: team1._id,
-              participants: [{ user: users[1]._id, status: 'confirmed' }, { user: users[3]._id, status: 'invited' }],
+              _id: 'meeting_ui_sync_123',
+              title: 'Weekly UI Sync', description: 'Sync on the latest dashboard redesign.', host: AliceId, team: 'team_frontend_123',
+              participants: [{ user: BobId, status: 'confirmed' }, { user: DianaId, status: 'invited' }],
               scheduledFor: futureDate, meetingType: 'recurring', status: 'scheduled'
             });
 
             const m2 = await Meeting.create({
-              title: 'Q1 Kickoff Review', description: 'Past meeting to review Q1 metrics.', host: users[2]._id,
-              participants: [{ user: users[0]._id, status: 'attended' }],
+              _id: 'meeting_kickoff_456',
+              title: 'Q1 Kickoff Review', description: 'Past meeting to review Q1 metrics.', host: CharlieId,
+              participants: [{ user: AliceId, status: 'attended' }],
               scheduledFor: pastDate, meetingType: 'regular', status: 'completed'
             });
 
             const agendas = await Agenda.insertMany([
-              { meeting: m1._id, title: 'Finalize Dark Mode CSS', description: 'Check color palette.', status: 'open', responsiblePerson: { user: users[0]._id }, order: 1, createdBy: users[0]._id },
-              { meeting: m1._id, title: 'Add Member API Integration', description: 'Hook up modal.', status: 'open', responsiblePerson: { user: users[1]._id }, order: 2, createdBy: users[0]._id },
-              { meeting: m2._id, title: 'Review Revenue Numbers', description: 'Check MRR.', status: 'completed', responsiblePerson: { user: users[2]._id }, order: 1, createdBy: users[2]._id },
-              { meeting: m2._id, title: 'Investigate server crash', description: 'Port 3001.', status: 'open', responsiblePerson: { user: users[0]._id }, order: 2, createdBy: users[2]._id }
+              { meeting: m1._id, title: 'Finalize Dark Mode CSS', description: 'Check color palette.', status: 'open', responsiblePerson: { user: AliceId }, order: 1, createdBy: AliceId },
+              { meeting: m1._id, title: 'Add Member API Integration', description: 'Hook up modal.', status: 'open', responsiblePerson: { user: BobId }, order: 2, createdBy: AliceId },
+              { meeting: m2._id, title: 'Review Revenue Numbers', description: 'Check MRR.', status: 'completed', responsiblePerson: { user: CharlieId }, order: 1, createdBy: CharlieId },
+              { meeting: m2._id, title: 'Investigate server crash', description: 'Port 3001.', status: 'open', responsiblePerson: { user: AliceId }, order: 2, createdBy: CharlieId }
             ]);
 
             m1.agendaPoints = [agendas[0]._id, agendas[1]._id]; await m1.save();

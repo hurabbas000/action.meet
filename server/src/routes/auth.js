@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
+const { authenticate } = require('../middleware/auth');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -138,74 +139,28 @@ router.post('/login', [
 });
 
 // Get current user (protected route)
-router.get('/me', async (req, res) => {
+router.get('/me', authenticate, async (req, res) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token provided'
-            });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        const user = await User.findById(decoded.userId);
-        
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token'
-            });
-        }
-
-        if (!user.isActive) {
-            return res.status(401).json({
-                success: false,
-                message: 'Your account has been deactivated'
-            });
-        }
-
         res.json({
             success: true,
             data: {
-                user: user.getProfile()
+                user: req.user.getProfile()
             }
         });
     } catch (error) {
         console.error('Get current user error:', error);
-        res.status(401).json({
-            success: false,
-            message: 'Invalid token'
-        });
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
 // Update user profile
 router.put('/profile', [
+    authenticate,
     body('name').optional().trim().isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
     body('phone').optional().matches(/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/).withMessage('Please provide a valid phone number')
 ], async (req, res) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token provided'
-            });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        const user = await User.findById(decoded.userId);
-        
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token'
-            });
-        }
-
+        const user = req.user;
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({
@@ -215,11 +170,12 @@ router.put('/profile', [
             });
         }
 
-        const { name, phone, preferences, avatar } = req.body;
+        const { name, phone, preferences, avatar, bio } = req.body;
 
-        if (name) user.name = name;
+        if (name) user.name = name.trim();
         if (phone) user.phone = phone;
         if (avatar) user.avatar = avatar;
+        if (bio !== undefined) user.bio = bio;
         if (preferences) user.preferences = { ...user.preferences, ...preferences };
 
         await user.save();
@@ -242,29 +198,13 @@ router.put('/profile', [
 
 // Change password
 router.put('/password', [
+    authenticate,
     body('currentPassword').notEmpty().withMessage('Current password is required'),
     body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters')
 ], async (req, res) => {
     try {
-        const token = req.header('Authorization')?.replace('Bearer ', '');
+        const user = await User.findById(req.userId).select('+password');
         
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token provided'
-            });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        const user = await User.findById(decoded.userId).select('+password');
-        
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token'
-            });
-        }
-
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({
@@ -302,32 +242,5 @@ router.put('/password', [
     }
 });
 
-
-// ─── Update Profile (PUT /auth/profile) ───────────
-router.put('/profile', async (req, res) => {
-    try {
-        const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.split(' ')[1];
-        if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        const user = await User.findById(decoded.userId);
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-        const { name, bio, email } = req.body;
-        if (name && name.trim()) user.name = name.trim();
-        if (bio !== undefined) user.bio = bio;
-        if (email && email !== user.email) {
-            const taken = await User.findOne({ email });
-            if (taken) return res.status(400).json({ success: false, message: 'Email already in use' });
-            user.email = email;
-        }
-        await user.save();
-        res.json({ success: true, message: 'Profile updated', data: { user: user.getProfile() } });
-    } catch (error) {
-        console.error('Update profile error:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-});
 
 module.exports = router;

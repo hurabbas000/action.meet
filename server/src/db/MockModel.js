@@ -13,68 +13,105 @@ class MockModel {
     // Helper to wrap raw objects with Mongoose-like instance methods
     _wrap(doc) {
         if (!doc) return null;
-        if (Array.isArray(doc)) return doc.map(d => this._wrap(d));
+        if (Array.isArray(doc)) {
+            const arr = doc.map(d => this._wrap(d));
+            arr.id = function(id) { return arr.find(item => (item._id || item.id) === id); };
+            return arr;
+        }
         
         const self = this;
-        return {
+        const wrapped = {
             ...doc,
             _id: doc._id || doc.id,
             id: doc._id || doc.id,
             save: async function() { 
                 const data = store[self.collectionName] || [];
                 const idx = data.findIndex(item => item._id === this._id);
-                if (idx !== -1) data[idx] = { ...this };
+                if (idx !== -1) {
+                    const savedState = { ...this };
+                    // Methods are lost in store save, that's intended for the JSON store
+                    delete savedState.save;
+                    delete savedState.populate;
+                    delete savedState.toObject;
+                    delete savedState.getProfile;
+                    delete savedState.comparePassword;
+                    delete savedState.id;
+                    delete savedState.isMember;
+                    delete savedState.getUserRole;
+                    delete savedState.addMember;
+                    delete savedState.removeMember;
+                    delete savedState.updateParticipantStatus;
+                    delete savedState.calculateNextMeetingDate;
+                    delete savedState.createNextMeeting;
+
+                    store[self.collectionName][idx] = savedState;
+                }
                 return this; 
             },
             populate: async function(path, select) {
                 if (!path) return this;
                 
-                // Mongoose can pass an object { path: '...', select: '...' }
-                let actualPath = typeof path === 'object' ? path.path : path;
-                if (!actualPath || typeof actualPath !== 'string') return this;
+                let paths = [];
+                if (typeof path === 'string') {
+                    paths = path.split(' ').map(p => ({ path: p.trim() }));
+                } else if (Array.isArray(path)) {
+                    paths = path;
+                } else if (typeof path === 'object') {
+                    paths = [path];
+                }
 
-                // Simplified mock population
-                const paths = actualPath.split(' ');
                 for (const p of paths) {
-                    const [objPath, subField] = p.split('.');
+                    const actualPath = p.path;
+                    const [objPath, subField] = actualPath.split('.');
+                    
+                    // Determine which collection to look into
+                    // This is a heuristic for the mock: check schema if available, otherwise guess
+                    let targetCollection = 'users'; // Default
+                    if (actualPath.toLowerCase().includes('team')) targetCollection = 'teams';
+                    else if (actualPath.toLowerCase().includes('meeting')) targetCollection = 'meetings';
+                    else if (actualPath.toLowerCase().includes('agenda')) targetCollection = 'agendas';
+
                     if (Array.isArray(this[objPath])) {
                         for (let i = 0; i < this[objPath].length; i++) {
                             const subDoc = this[objPath][i];
-                            const targetId = subField ? subDoc[subField] : subDoc;
+                            const targetId = subField ? (subDoc[subField]?._id || subDoc[subField]) : (subDoc?._id || subDoc);
                             if (targetId) {
-                                // Direct lookup from store to avoid circular Dependency with models
-                                const found = (store.users || []).find(u => (u._id || u.id) === targetId.toString());
+                                const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
                                 if (found) {
-                                    if (subField) subDoc[subField] = found;
-                                    else this[objPath][i] = found;
+                                    if (subField) subDoc[subField] = { ...found };
+                                    else this[objPath][i] = { ...found };
                                 }
                             }
                         }
                     } else if (this[objPath]) {
-                        const targetId = this[objPath];
-                        const found = (store.users || []).find(u => (u._id || u.id) === targetId.toString());
-                        if (found) this[objPath] = found;
+                        const targetId = this[objPath]?._id || this[objPath];
+                        if (targetId) {
+                            const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
+                            if (found) this[objPath] = { ...found };
+                        }
                     }
                 }
                 return this;
             },
-            toObject: function() { return { ...this }; },
+            toObject: function(options) { 
+                const obj = { ...this };
+                delete obj.save;
+                delete obj.populate;
+                delete obj.toObject;
+                return obj; 
+            },
             getProfile: function() {
-                const u = { ...this };
+                const u = this.toObject();
                 delete u.password;
                 return u;
             },
             comparePassword: async function(candidate) {
                 const bcrypt = require('bcryptjs');
                 if (!this.password || !this.password.startsWith('$2a$')) {
-                    console.log(`🔐 Mock Auth Check FALLBACK (Unhashed): [${candidate}] vs [${this.password}]`);
                     return candidate === this.password;
                 }
-                const match = await bcrypt.compare(candidate, this.password);
-                console.log(`🔐 Mock Auth Check: [${candidate}] vs [${this.password?.substring(0,10)}...] -> ${match}`);
-                return match;
+                return await bcrypt.compare(candidate, this.password);
             },
-            // Subdocument support for lists (id() method)
             id: function(subId) {
                 if (Array.isArray(this)) return this.find(i => (i._id || i.id) === subId);
                 for (let key in this) {
@@ -85,75 +122,184 @@ class MockModel {
                 }
                 return null;
             },
-            // Team Methods
             isMember: function(userId) {
-                return (this.members || []).some(m => (m.user?._id || m.user || '').toString() === userId.toString());
+                const uid = userId?._id || userId || '';
+                return (this.members || []).some(m => (m.user?._id || m.user || '').toString() === uid.toString());
             },
             getUserRole: function(userId) {
-                const m = (this.members || []).find(m => (m.user?._id || m.user || '').toString() === userId.toString());
+                const uid = userId?._id || userId || '';
+                const m = (this.members || []).find(m => (m.user?._id || m.user || '').toString() === uid.toString());
                 return m ? m.role : null;
             },
             addMember: async function(userId, role = 'member') {
                 if (!this.members) this.members = [];
+                // Check if already a member
+                const exists = this.members.find(m => (m.user?._id || m.user || '').toString() === (userId?._id || userId || '').toString());
+                if (exists) {
+                    if (exists.isActive === false) exists.isActive = true;
+                    return this.save();
+                }
                 this.members.push({ user: userId, role, joinedAt: new Date(), isActive: true });
                 return this.save();
             },
             removeMember: async function(userId) {
-                this.members = (this.members || []).filter(m => (m.user?._id || m.user || '').toString() !== userId.toString());
+                const uid = (userId?._id || userId || '').toString();
+                const m = (this.members || []).find(m => (m.user?._id || m.user || '').toString() === uid);
+                if (m) m.isActive = false;
                 return this.save();
             },
-            updateParticipantStatus: async function(userId, status) {
-                const p = (this.participants || []).find(m => (m.user?._id || m.user || '').toString() === userId.toString());
-                if (p) p.status = status;
+            // Agenda specific methods
+            assignResponsiblePerson: async function(userId, assignedBy) {
+                this.responsiblePerson = {
+                    user: userId,
+                    assignedAt: new Date(),
+                    assignedBy: assignedBy
+                };
                 return this.save();
             },
-            calculateNextMeetingDate: function() {
-                const d = new Date(this.nextMeetingDate || this.scheduledFor);
-                d.setDate(d.getDate() + 7);
-                return d;
-            },
-            createNextMeeting: async function() {
-                const nextDate = this.calculateNextMeetingDate();
-                const Meeting = require('../models/Meeting');
-                const m = await Meeting.create({
-                    title: this.title,
-                    description: this.description,
-                    host: this.host,
-                    scheduledFor: nextDate,
-                    status: 'scheduled'
+            addActionItem: async function(description, assignedTo, dueDate) {
+                if (!this.actionItems) this.actionItems = [];
+                this.actionItems.push({
+                    _id: Math.random().toString(36).substr(2, 9),
+                    description,
+                    assignedTo,
+                    dueDate: new Date(dueDate),
+                    status: 'pending',
+                    createdAt: new Date()
                 });
-                this.nextMeetingDate = nextDate;
+                return this.save();
+            },
+            updateActionItemStatus: async function(actionItemId, status) {
+                const item = (this.actionItems || []).find(i => (i._id || i.id) === actionItemId);
+                if (item) {
+                    item.status = status;
+                    if (status === 'completed') item.completedAt = new Date();
+                }
+                return this.save();
+            },
+            markAsCompleted: async function(updatedBy) {
+                this.status = 'completed';
+                this.updatedBy = updatedBy;
+                (this.actionItems || []).forEach(item => {
+                    if (item.status === 'pending' || item.status === 'in-progress') {
+                        item.status = 'completed';
+                        item.completedAt = new Date();
+                    }
+                });
                 return this.save();
             }
         };
-    }
 
-    _wrapSub(doc) {
-        if (!doc) return null;
-        if (Array.isArray(doc)) {
-            const arr = doc.map(d => this._wrapSub(d));
-            arr.id = function(id) { return arr.find(item => (item._id || item.id) === id); };
-            return arr;
+        // Add model specific methods
+        if (this.collectionName === 'meetings') {
+            wrapped.addParticipant = async function(userId) {
+                if (!this.participants) this.participants = [];
+                const uid = (userId?._id || userId || '').toString();
+                const existing = this.participants.find(p => (p.user?._id || p.user || '').toString() === uid);
+                if (existing) {
+                    existing.status = 'invited';
+                } else {
+                    this.participants.push({ user: userId, status: 'invited', invitedAt: new Date() });
+                }
+                return this.save();
+            };
+            wrapped.updateParticipantStatus = async function(userId, status) {
+                const uid = (userId?._id || userId || '').toString();
+                const p = (this.participants || []).find(m => (m.user?._id || m.user || '').toString() === uid);
+                if (p) p.status = status;
+                return this.save();
+            };
         }
-        return doc;
+
+        // Recurring Meeting specific
+        if (this.collectionName === 'recurring_meetings') {
+            wrapped.calculateNextMeetingDate = function() {
+                const nextDate = new Date(this.nextMeetingDate || Date.now());
+                const type = this.recurrence?.type || 'weekly';
+                const interval = this.recurrence?.interval || 1;
+                
+                if (type === 'daily') nextDate.setDate(nextDate.getDate() + interval);
+                else if (type === 'weekly') nextDate.setDate(nextDate.getDate() + (7 * interval));
+                else if (type === 'bi-weekly') nextDate.setDate(nextDate.getDate() + (14 * interval));
+                else if (type === 'monthly') nextDate.setMonth(nextDate.getMonth() + interval);
+                else nextDate.setDate(nextDate.getDate() + 7);
+                
+                return nextDate;
+            };
+
+            wrapped.createNextMeeting = async function() {
+                const nextDate = this.calculateNextMeetingDate();
+                const Meeting = require('../models/Meeting');
+                const meetingData = {
+                    title: this.title,
+                    description: this.description,
+                    scheduledFor: this.nextMeetingDate,
+                    duration: this.meetingSettings?.duration || 60,
+                    host: this.host,
+                    team: this.team,
+                    meetingType: 'followup',
+                    parentMeeting: this._id,
+                    status: 'scheduled',
+                    participants: (this.meetingSettings?.defaultParticipants || []).map(u => ({
+                        user: u,
+                        status: 'invited'
+                    }))
+                };
+                
+                const meeting = await Meeting.create(meetingData);
+                this.lastMeetingDate = this.nextMeetingDate;
+                this.nextMeetingDate = nextDate;
+                if (!this.statistics) this.statistics = { totalMeetings: 0 };
+                this.statistics.totalMeetings++;
+                
+                await this.save();
+                return meeting;
+            };
+
+            wrapped.getUpcomingMeetings = async function(count = 5) {
+                const Meeting = require('../models/Meeting');
+                return Meeting.find({
+                    parentMeeting: this._id,
+                    scheduledFor: { $gte: new Date() },
+                    status: { $ne: 'cancelled' }
+                }).limit(count);
+            };
+
+            wrapped.updateStatistics = async function() {
+                const Meeting = require('../models/Meeting');
+                const meetings = await Meeting.find({ parentMeeting: this._id });
+                if (!this.statistics) this.statistics = {};
+                this.statistics.totalMeetings = meetings.length;
+                this.statistics.completedMeetings = meetings.filter(m => m.status === 'completed').length;
+                return this.save();
+            };
+        }
+
+        return wrapped;
     }
 
     _query(promises) {
-        let populationPaths = [];
+        const populationPaths = [];
         const query = {
-            then: (resolve, reject) => promises.then(async res => {
-                const wrapped = this._wrap(res);
-                if (wrapped && populationPaths.length) {
-                    if (Array.isArray(wrapped)) {
-                        for (const doc of wrapped) {
-                            for (const p of populationPaths) await doc.populate(p.path, p.select);
-                        }
-                    } else {
-                        for (const p of populationPaths) await wrapped.populate(p.path, p.select);
+            then: (resolve, reject) => {
+                return promises.then(async res => {
+                    if (!res) {
+                        if (resolve) resolve(null);
+                        return null;
                     }
-                }
-                resolve(wrapped);
-            }, reject),
+                    const wrapped = this._wrap(res);
+                    if (wrapped && populationPaths.length) {
+                        const docs = Array.isArray(wrapped) ? wrapped : [wrapped];
+                        for (const doc of docs) {
+                            for (const p of populationPaths) {
+                                await doc.populate(p.path, p.select);
+                            }
+                        }
+                    }
+                    if (resolve) resolve(wrapped);
+                    return wrapped;
+                }, reject);
+            },
             select: () => query,
             sort: () => query,
             limit: () => query,
@@ -167,54 +313,66 @@ class MockModel {
         return query;
     }
 
-    // Advanced mocker for MongoDB query filtering
     _match(item, query) {
         if (!query || Object.keys(query).length === 0) return true;
         
         for (let key in query) {
             if (key === '$or') {
-                const subQueries = query[key];
-                const passedOr = subQueries.some(sq => this._match(item, sq));
-                if (!passedOr) return false;
+                const matched = query[key].some(sq => this._match(item, sq));
+                if (!matched) return false;
+            } else if (key === '$and') {
+                if (!query[key].every(sq => this._match(item, sq))) return false;
             } else {
                 const val = query[key];
-                
-                // Handling operators like $in or $gte
-                if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
-                    if (val.$in) {
-                        const itemVal = item[key];
-                        if (!val.$in.includes(itemVal)) return false;
+                let itemVal = item;
+
+                if (key === '_id' || key === 'id') {
+                    const itemID = (item._id || item.id || '').toString();
+                    const queryID = (val?._id || val?.id || val || '').toString();
+                    if (itemID !== queryID) return false;
+                    continue;
+                }
+
+                if (key.includes('.')) {
+                    const parts = key.split('.');
+                    for (let p of parts) {
+                        if (itemVal === undefined || itemVal === null) break;
+                        itemVal = Array.isArray(itemVal) ? itemVal.map(i => i[p]) : itemVal[p];
                     }
-                    if (val.$gte) {
-                        if (new Date(item[key]) < new Date(val.$gte)) return false;
+                    if (Array.isArray(itemVal)) {
+                        const targetId = (val?._id || val?.id || val || '').toString();
+                        if (!itemVal.some(i => (i?._id || i?.id || i || '').toString() === targetId)) {
+                            return false;
+                        }
+                        continue;
                     }
                 } else {
-                    // Handling Nested Object Paths (dot notation)
-                    let itemVal = item;
-                    if (key.includes('.')) {
-                        const parts = key.split('.');
-                        for (let p of parts) {
-                            if (itemVal === undefined || itemVal === null) break;
-                            if (Array.isArray(itemVal)) {
-                                itemVal = itemVal.map(i => i[p]);
-                            } else {
-                                itemVal = itemVal[p];
-                            }
+                    itemVal = item[key];
+                }
+
+                if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+                    if (val.$in && !val.$in.map(v => v.toString()).includes((itemVal || '').toString())) return false;
+                    if (val.$ne !== undefined) {
+                        const neVal = (val.$ne?._id || val.$ne?.id || val.$ne);
+                        if (neVal === null) {
+                            if (itemVal === null || itemVal === undefined) return false;
+                        } else if ((itemVal || '').toString() === neVal.toString()) {
+                            return false;
                         }
-                        if (Array.isArray(itemVal)) {
-                            // Match if ANY element in the array matches the value
-                            const matches = itemVal.some(i => (i?._id || i?.id || i || '').toString() === (val?._id || val?.id || val || '').toString());
-                            if (!matches) return false;
-                            continue;
-                        }
-                    } else {
-                        itemVal = item[key];
                     }
-                    
-                    // Direct Equality Check
+
+                    if (val.$gte && new Date(itemVal) < new Date(val.$gte)) return false;
+                    if (val.$lte && new Date(itemVal) > new Date(val.$lte)) return false;
+                    if (val.$regex) {
+                        const re = new RegExp(val.$regex, val.$options || '');
+                        if (!re.test(itemVal)) return false;
+                    }
+                } else {
                     const strItemVal = (itemVal?._id || itemVal?.id || itemVal || '').toString();
                     const strQueryVal = (val?._id || val?.id || val || '').toString();
-                    if (strItemVal !== strQueryVal) return false;
+                    if (strItemVal !== strQueryVal) {
+                        return false;
+                    }
                 }
             }
         }
@@ -234,8 +392,11 @@ class MockModel {
     }
 
     findById(id) {
+        if (!id) return this._query(Promise.resolve(null));
         const data = store[this.collectionName] || [];
-        const promise = Promise.resolve(data.find(item => item._id === id || item.id === id) || null);
+        const sid = (id?._id || id || '').toString();
+        const found = data.find(item => (item._id || item.id || '').toString() === sid);
+        const promise = Promise.resolve(found || null);
         return this._query(promise);
     }
 
@@ -264,25 +425,59 @@ class MockModel {
     }
 
     async countDocuments(query = {}) {
-        const res = await this.find(query);
-        return res.length;
+        const data = store[this.collectionName] || [];
+        return data.filter(item => this._match(item, query)).length;
     }
 
     async findByIdAndUpdate(id, update, options = {}) {
         if (!store[this.collectionName]) return null;
-        const index = store[this.collectionName].findIndex(item => item._id === id || item.id === id);
+        const sid = (id?._id || id || '').toString();
+        const index = store[this.collectionName].findIndex(item => (item._id || item.id) === sid);
         if (index === -1) return null;
-        store[this.collectionName][index] = { ...store[this.collectionName][index], ...update, updatedAt: new Date() };
-        return this._wrap(store[this.collectionName][index]);
+        
+        let current = store[this.collectionName][index];
+        
+        // Handle $set
+        if (update.$set) {
+            current = { ...current, ...update.$set };
+        } else if (!update.$push && !update.$pull) {
+            current = { ...current, ...update };
+        }
+
+        // Handle $push
+        if (update.$push) {
+            for (let key in update.$push) {
+                if (!current[key]) current[key] = [];
+                current[key].push(update.$push[key]);
+            }
+        }
+
+        // Handle $pull
+        if (update.$pull) {
+            for (let key in update.$pull) {
+                if (!current[key]) continue;
+                const pullVal = update.$pull[key];
+                const pullId = (pullVal?._id || pullVal?.id || pullVal || '').toString();
+                current[key] = current[key].filter(item => (item?._id || item?.id || item || '').toString() !== pullId);
+            }
+        }
+
+        current.updatedAt = new Date();
+        store[this.collectionName][index] = current;
+        return this._wrap(current);
     }
 
     async findByIdAndDelete(id) {
         if (!store[this.collectionName]) return null;
-        const index = store[this.collectionName].findIndex(item => item._id === id || item.id === id);
+        const sid = (id?._id || id || '').toString();
+        const index = store[this.collectionName].findIndex(item => (item._id || item.id) === sid);
         if (index === -1) return null;
         const deleted = store[this.collectionName].splice(index, 1);
         return this._wrap(deleted[0]);
     }
 }
+
+module.exports = MockModel;
+
 
 module.exports = MockModel;
