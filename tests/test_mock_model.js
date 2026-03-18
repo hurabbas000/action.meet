@@ -62,6 +62,21 @@ async function runTests() {
             console.error('❌ markAsCompleted failed', updatedAgenda.status);
         }
 
+        // Test 5: Nested Populate
+        console.log('\nTest 5: Nested Populate');
+        const meetingWithAgenda = await Meeting.findById('meeting_ui_sync_123')
+            .populate({
+                path: 'agenda',
+                populate: { path: 'responsiblePerson.user' }
+            });
+        
+        const firstAgenda = meetingWithAgenda.agenda[0];
+        if (firstAgenda && firstAgenda.responsiblePerson && firstAgenda.responsiblePerson.user && firstAgenda.responsiblePerson.user.name) {
+            console.log('✅ Nested populate passed:', firstAgenda.responsiblePerson.user.name);
+        } else {
+            console.error('❌ Nested populate failed', firstAgenda?.responsiblePerson);
+        }
+
         console.log('\n🎉 All tests completed!');
     } catch (error) {
         console.error('\n💥 Tests failed with error:', error);

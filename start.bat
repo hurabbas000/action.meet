@@ -1,25 +1,38 @@
 @echo off
-echo Starting ActionMeet...
+setlocal enabledelayedexpansion
+echo 🚀 Preparing ActionMeet...
+
+:: Kill existing node processes to free up ports
+echo 🧹 Cleaning up existing processes...
+taskkill /F /IM node.exe /T 2>nul
+echo Done.
+
 echo.
-
+echo 🚀 Starting ActionMeet Backend...
 :: Start backend server in a new window
-start "ActionMeet Backend" cmd /k "cd /d C:\Users\asad\CascadeProjects\windsurf-project\server && npm start"
+start "ActionMeet Backend" cmd /k "cd /d %~dp0server && npm start"
 
-:: Wait 4 seconds for backend to fully boot and connect to DB
-timeout /t 4 /nobreak >nul
+:: Wait for backend (using ping as a robust sleep alternative)
+echo ⏳ Waiting for backend to initialize...
+ping 127.0.0.1 -n 6 >nul
 
+echo 🚀 Starting ActionMeet Frontend...
 :: Start frontend server in another new window
-start "ActionMeet Frontend" cmd /k "cd /d C:\Users\asad\CascadeProjects\windsurf-project\client && npx serve public -l 3000 --cors"
+start "ActionMeet Frontend" cmd /k "cd /d %~dp0client && npx serve public -l 3000 --cors"
 
-:: Wait 2 more seconds then open browser
-timeout /t 2 /nobreak >nul
+:: Wait for frontend
+echo ⏳ Waiting for frontend to initialize...
+ping 127.0.0.1 -n 4 >nul
 
 :: Open the browser
+echo 🌍 Opening browser...
 start "" "http://localhost:3000"
 
 echo.
-echo Both servers are running!
+echo ✨ ActionMeet is ready!
 echo Backend: http://localhost:3001/api
 echo Frontend: http://localhost:3000
 echo.
-echo Keep both CMD windows open to use the website.
+echo 💡 Keep both CMD windows open to use the website.
+echo.
+pause

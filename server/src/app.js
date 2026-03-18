@@ -8,82 +8,17 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss');
 const hpp = require('hpp');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
-// Force Mock Mode if no remote DB is provided (Local DB is missing on this machine)
+// 1. Force Mock Mode if no remote DB is provided
 if (!process.env.MONGODB_URI || process.env.MONGODB_URI.includes('localhost')) {
     global.MOCK_DATABASE = true;
     console.log('🚀 INITIALIZING IN MOCK DATABASE MODE');
 }
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const teamRoutes = require('./routes/team');
-const meetingRoutes = require('./routes/meetings');
-const agendaRoutes = require('./routes/agenda');
-const taskRoutes = require('./routes/tasks');
-const notificationRoutes = require('./routes/notifications');
-const recurringRoutes = require('./routes/recurring');
-
-// Import middleware
-const { errorHandler, notFound } = require('./middleware/errorHandler');
-
-const app = express();
-
-// Security middleware
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://*.firebaseapp.com", "https://*.googleapis.com"],
-            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-            "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-            "img-src": ["'self'", "data:", "https://*.googleusercontent.com", "https://*.firebaseapp.com"],
-            "connect-src": ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "/api"]
-        },
-    },
-}));
-app.use(mongoSanitize());
-app.use(hpp());
-
-// CORS configuration
-app.use(cors({
-    origin: function(origin, callback) {
-        // Allow all localhost origins, file:// (null), and Railway
-        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === 'null' || origin.includes('railway.app')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
-
-// Compression middleware
-app.use(compression());
-
-// Logging middleware
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-}
-
-// Database connection — uses a persistent local DB folder so data survives restarts
-const path = require('path');
-const fs = require('fs');
-
+// 2. Database connection & Seeding Logic
 const seedData = async () => {
     try {
         const User = require('./models/User');
@@ -163,19 +98,17 @@ const connectDB = async () => {
         let dbUri = process.env.MONGODB_URI;
 
         if (!dbUri || dbUri.includes('localhost')) {
+            if (global.MOCK_DATABASE) {
+                console.log('🚀 Skipping MongoDB Memory Server (Directly using Mock Mode)');
+                await seedData();
+                return;
+            }
             const { MongoMemoryServer } = require('mongodb-memory-server');
-
-            // Persist DB data so users/meetings survive server restarts
             const dbPath = path.join(__dirname, '../../.mongo-test-db');
             if (!fs.existsSync(dbPath)) fs.mkdirSync(dbPath, { recursive: true });
-
             const mongoServer = await MongoMemoryServer.create({
-                instance: {
-                    dbPath,
-                    storageEngine: 'wiredTiger'
-                }
+                instance: { dbPath, storageEngine: 'wiredTiger' }
             });
-
             dbUri = mongoServer.getUri();
             console.log('✅ Using persistent MongoDB (local storage)');
         }
@@ -186,12 +119,12 @@ const connectDB = async () => {
     } catch (err) {
         console.error('❌ MongoDB connection error:', err.message);
         console.warn('🚀 SWITCHING TO MOCK DATABASE MODE (In-Memory Only)');
-        console.warn('⚠️ No local MongoDB installation found. Data will not persist.');
         global.MOCK_DATABASE = true;
         await seedData();
     }
 };
 
+// 3. Initialize DB/Mock
 if (!global.MOCK_DATABASE) {
     connectDB();
 } else {
@@ -199,18 +132,73 @@ if (!global.MOCK_DATABASE) {
     seedData();
 }
 
-// Health check endpoint
+// 4. Import routes (AFTER global.MOCK_DATABASE is set)
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const teamRoutes = require('./routes/team');
+const meetingRoutes = require('./routes/meetings');
+const agendaRoutes = require('./routes/agenda');
+const taskRoutes = require('./routes/tasks');
+const notificationRoutes = require('./routes/notifications');
+const recurringRoutes = require('./routes/recurring');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
+
+const app = express();
+
+// 5. Middleware Setup
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdnjs.cloudflare.com", "https://*.firebaseapp.com", "https://*.googleapis.com"],
+            "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+            "img-src": ["'self'", "data:", "https://*.googleusercontent.com", "https://*.firebaseapp.com"],
+            "connect-src": ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "/api"]
+        },
+    },
+}));
+app.use(mongoSanitize());
+app.use(hpp());
+app.use(cors({
+    origin: function(origin, callback) {
+        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === 'null' || origin.includes('railway.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+app.use(express.json({ limit: '5mb' }));
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        console.error('❌ Malformed JSON Request:', err.message);
+        return res.status(400).json({ success: false, message: 'Malformed JSON in request body' });
+    }
+    next();
+});
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(compression());
+if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
+
+// 6. Routes Setup
 app.get('/api/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         message: 'ActionMeet API is running',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
         version: '1.0.0'
     });
 });
 
-// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/team', teamRoutes);
@@ -220,29 +208,22 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/recurring', recurringRoutes);
 
-// Serve static frontend files (Railway/Production)
 const publicPath = path.join(__dirname, '../../client/public');
 app.use(express.static(publicPath));
-
-// Catch-all: serve index.html for any non-API routes
 app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// 404 handler for API
 app.use(notFound);
-
-// Error handling middleware
 app.use(errorHandler);
 
-// Start server
+// 7. Start Server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`🚀 ActionMeet Server running on port ${PORT}`);
-    console.log(`� Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 API available at: http://localhost:${PORT}/api`);
-    console.log(`� API Documentation: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;
+

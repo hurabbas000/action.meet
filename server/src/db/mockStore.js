@@ -9,7 +9,8 @@ const store = {
     teams: [],
     meetings: [],
     agendas: [],
-    notifications: []
+    notifications: [],
+    recurring_meetings: []
 };
 
 // Helper to seed initial data
@@ -51,7 +52,23 @@ const seed = () => {
     ];
     store.meetings[0].agenda = ['a1', 'a2'];
     store.meetings[1].agenda = ['a3', 'a4'];
-    console.log(`🌱 Mock Store seeded with ${store.users.length} users, ${store.teams.length} teams, and ${store.meetings.length} meetings.`);
+
+    store.recurring_meetings = [
+        {
+            _id: 'rec_meeting_123',
+            title: 'Weekly UI Sync (Series)',
+            description: 'The recurring series for Weekly UI Sync',
+            host: AliceId,
+            team: 'team_frontend_123',
+            recurrence: { type: 'weekly', interval: 1, dayOfWeek: futureDate.getDay() },
+            meetingSettings: { duration: 60, defaultParticipants: [BobId, DianaId], autoCarryForward: true },
+            nextMeetingDate: new Date(futureDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+            isActive: true,
+            statistics: { totalMeetings: 1, completedMeetings: 0 }
+        }
+    ];
+
+    console.log(`🌱 Mock Store seeded with ${store.users.length} users, ${store.teams.length} teams, ${store.meetings.length} meetings, and ${store.recurring_meetings.length} recurring series.`);
 };
 
 seed();

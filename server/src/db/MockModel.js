@@ -48,58 +48,94 @@ class MockModel {
                 }
                 return this; 
             },
-            populate: async function(path, select) {
-                if (!path) return this;
-                
-                let paths = [];
-                if (typeof path === 'string') {
-                    paths = path.split(' ').map(p => ({ path: p.trim() }));
-                } else if (Array.isArray(path)) {
-                    paths = path;
-                } else if (typeof path === 'object') {
-                    paths = [path];
-                }
-
-                for (const p of paths) {
-                    const actualPath = p.path;
-                    const [objPath, subField] = actualPath.split('.');
-                    
-                    // Determine which collection to look into
-                    // This is a heuristic for the mock: check schema if available, otherwise guess
-                    let targetCollection = 'users'; // Default
-                    if (actualPath.toLowerCase().includes('team')) targetCollection = 'teams';
-                    else if (actualPath.toLowerCase().includes('meeting')) targetCollection = 'meetings';
-                    else if (actualPath.toLowerCase().includes('agenda')) targetCollection = 'agendas';
-
-                    if (Array.isArray(this[objPath])) {
-                        for (let i = 0; i < this[objPath].length; i++) {
-                            const subDoc = this[objPath][i];
-                            const targetId = subField ? (subDoc[subField]?._id || subDoc[subField]) : (subDoc?._id || subDoc);
-                            if (targetId) {
-                                const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
-                                if (found) {
-                                    if (subField) subDoc[subField] = { ...found };
-                                    else this[objPath][i] = { ...found };
-                                }
-                            }
-                        }
-                    } else if (this[objPath]) {
-                        const targetId = this[objPath]?._id || this[objPath];
-                        if (targetId) {
-                            const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
-                            if (found) this[objPath] = { ...found };
-                        }
-                    }
-                }
-                return this;
-            },
-            toObject: function(options) { 
+            toObject: function(options = {}) { 
                 const obj = { ...this };
                 delete obj.save;
                 delete obj.populate;
                 delete obj.toObject;
+                
+                // If options.virtuals is true, we should ideally include them.
+                // For now, let's just make sure we don't crash and return a clean object.
                 return obj; 
             },
+            populate: async function(path, select) {
+                if (!path) return this;
+                
+                let populations = [];
+                if (typeof path === 'string') {
+                    populations = path.split(' ').map(p => ({ path: p.trim(), select }));
+                } else if (Array.isArray(path)) {
+                    populations = path.map(p => typeof p === 'string' ? { path: p } : p);
+                } else if (typeof path === 'object') {
+                    populations = [path];
+                }
+
+                for (const p of populations) {
+                    const actualPath = p.path;
+                    const nestedPopulate = p.populate;
+                    const pathParts = actualPath.split('.');
+                    
+                    const recursivePopulate = async (currentDoc, parts) => {
+                        if (!currentDoc || parts.length === 0) return;
+                        
+                        const key = parts[0];
+                        const remaining = parts.slice(1);
+                        const val = currentDoc[key];
+                        
+                        if (val === undefined || val === null) return;
+
+                        if (remaining.length === 0) {
+                            // We reached the target key to populate
+                            // Determine which collection to look into
+                            let targetCollection = 'users'; // Default
+                            const lowerPath = actualPath.toLowerCase();
+                            // Heuristic: check last part of path to determine collection
+                            if (key.toLowerCase().includes('team')) targetCollection = 'teams';
+                            else if (key.toLowerCase().includes('recurring')) targetCollection = 'recurring_meetings';
+                            else if (key.toLowerCase().includes('meeting')) targetCollection = 'meetings';
+                            else if (key.toLowerCase().includes('agenda')) targetCollection = 'agendas';
+                            else if (key.toLowerCase().includes('role')) targetCollection = 'roles';
+                            else if (key.toLowerCase().includes('task')) targetCollection = 'tasks';
+                            else if (key.toLowerCase().includes('user') || key.toLowerCase().includes('host') || key.toLowerCase().includes('person') || key.toLowerCase().includes('member')) targetCollection = 'users';
+
+                            if (Array.isArray(val)) {
+                                for (let i = 0; i < val.length; i++) {
+                                    const targetId = (val[i]?._id || val[i]?.id || val[i]);
+                                    if (targetId) {
+                                        const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
+                                        if (found) {
+                                            val[i] = self._wrap({ ...found });
+                                            if (nestedPopulate) await val[i].populate(nestedPopulate);
+                                        }
+                                    }
+                                }
+                            } else {
+                                const targetId = (val?._id || val?.id || val);
+                                if (targetId) {
+                                    const found = (store[targetCollection] || []).find(u => (u._id || u.id) === targetId.toString());
+                                    if (found) {
+                                        currentDoc[key] = self._wrap({ ...found });
+                                        if (nestedPopulate) await currentDoc[key].populate(nestedPopulate);
+                                    }
+                                }
+                            }
+                        } else {
+                            // Need to go deeper
+                            if (Array.isArray(val)) {
+                                for (const item of val) {
+                                    await recursivePopulate(item, remaining);
+                                }
+                            } else {
+                                await recursivePopulate(val, remaining);
+                            }
+                        }
+                    };
+
+                    await recursivePopulate(this, pathParts);
+                }
+                return this;
+            },
+
             getProfile: function() {
                 const u = this.toObject();
                 delete u.password;
@@ -380,12 +416,18 @@ class MockModel {
     }
 
     find(query = {}) {
+        if (!store[this.collectionName]) {
+            console.warn(`⚠️ MockModel: find() called on non-existent collection [${this.collectionName}]. Available: ${Object.keys(store).join(', ')}`);
+        }
         const data = store[this.collectionName] || [];
         const promise = Promise.resolve(data.filter(item => this._match(item, query)));
         return this._query(promise);
     }
 
     findOne(query = {}) {
+        if (!store[this.collectionName]) {
+            console.warn(`⚠️ MockModel: findOne() called on non-existent collection [${this.collectionName}]`);
+        }
         const data = store[this.collectionName] || [];
         const promise = Promise.resolve(data.find(item => this._match(item, query)) || null);
         return this._query(promise);
@@ -430,7 +472,10 @@ class MockModel {
     }
 
     async findByIdAndUpdate(id, update, options = {}) {
-        if (!store[this.collectionName]) return null;
+        if (!store[this.collectionName]) {
+            console.error(`❌ MockModel: findByIdAndUpdate() [${id}] - collection [${this.collectionName}] NOT found in store!`);
+            return null;
+        }
         const sid = (id?._id || id || '').toString();
         const index = store[this.collectionName].findIndex(item => (item._id || item.id) === sid);
         if (index === -1) return null;
@@ -476,8 +521,5 @@ class MockModel {
         return this._wrap(deleted[0]);
     }
 }
-
-module.exports = MockModel;
-
 
 module.exports = MockModel;

@@ -106,8 +106,8 @@ router.get('/:id', authenticate, async (req, res) => {
         }
 
         // Check if user has access
-        const hasAccess = meeting.host._id.toString() === req.userId ||
-            meeting.participants.some(p => p.user._id.toString() === req.userId);
+        const hasAccess = (meeting.host?._id || meeting.host || '').toString() === req.userId ||
+            (meeting.participants || []).some(p => (p.user?._id || p.user || '').toString() === req.userId);
 
         if (!hasAccess) {
             return res.status(403).json({ success: false, message: 'Access denied' });
@@ -219,7 +219,7 @@ router.post('/:id/follow-up', [
         const parentMeeting = await Meeting.findById(req.params.id);
         if (!parentMeeting) return res.status(404).json({ success: false, message: 'Parent meeting not found' });
 
-        if (parentMeeting.host.toString() !== req.userId) {
+        if ((parentMeeting.host?._id || parentMeeting.host || '').toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Only host can create follow-up meetings' });
         }
 
@@ -302,7 +302,7 @@ router.put('/:id', [
         }
 
         // Check if user is host
-        if (meeting.host.toString() !== req.userId) {
+        if ((meeting.host?._id || meeting.host || '').toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Only meeting host can update meeting' });
         }
 
@@ -353,7 +353,7 @@ router.post('/:id/participants', [
         }
 
         // Check if user is host
-        if (meeting.host.toString() !== req.userId) {
+        if ((meeting.host?._id || meeting.host || '').toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Only meeting host can add participants' });
         }
 
@@ -396,8 +396,8 @@ router.put('/:id/participants/:userId', [
         }
 
         // Check if user is participant or host
-        const isParticipant = meeting.participants.some(p => p.user.toString() === req.userId);
-        const isHost = meeting.host.toString() === req.userId;
+        const isParticipant = (meeting.participants || []).some(p => (p.user?._id || p.user || '').toString() === req.userId);
+        const isHost = (meeting.host?._id || meeting.host || '').toString() === req.userId;
 
         if (!isParticipant && !isHost) {
             return res.status(403).json({ success: false, message: 'Access denied' });
@@ -430,7 +430,7 @@ router.delete('/:id', authenticate, async (req, res) => {
         }
 
         // Check if user is host
-        if (meeting.host.toString() !== req.userId) {
+        if ((meeting.host?._id || meeting.host || '').toString() !== req.userId) {
             return res.status(403).json({ success: false, message: 'Only meeting host can delete meeting' });
         }
 
@@ -462,8 +462,8 @@ router.get('/:id/statistics', authenticate, async (req, res) => {
         }
 
         // Check access
-        const hasAccess = meeting.host.toString() === req.userId ||
-            meeting.participants.some(p => p.user.toString() === req.userId);
+        const hasAccess = (meeting.host?._id || meeting.host || '').toString() === req.userId ||
+            (meeting.participants || []).some(p => (p.user?._id || p.user || '').toString() === req.userId);
 
         if (!hasAccess) {
             return res.status(403).json({ success: false, message: 'Access denied' });
