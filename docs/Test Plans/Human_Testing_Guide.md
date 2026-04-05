@@ -18,16 +18,16 @@ This guide provides step-by-step test cases for human testers to validate the Ac
 
 **Steps**:
 1. Open `index.html` in browser
-2. Click "Sign Up" button
-3. Enter valid email: `test@example.com`
-4. Enter password: `TestPass123!`
-5. Click "Sign Up" button
-
-**Expected Results**:
-- User is redirected to dashboard
-- Success message appears
-- User email displays in top-right corner
-- No error messages in console
+21. Click "Sign Up" tab (top of auth box)
+22. Enter valid email: `test@example.com`
+23. Enter password: `TestPass123!`
+24. Click "Create Account" button
+25. 
+26. **Expected Results**:
+27. - User is redirected to dashboard (App Shell appears)
+28. - Success message appears (Toast notification)
+29. - User name/initials display in top-right corner
+30. - No error messages in console
 
 **Test Data**:
 - Valid email formats
@@ -54,13 +54,14 @@ This guide provides step-by-step test cases for human testers to validate the Ac
 
 **Steps**:
 1. Log in to the application
-2. Click "Logout" button
-3. Verify redirection to login page
-
-**Expected Results**:
-- Redirected to index.html
-- Cannot access dashboard directly
-- Session cleared
+57. Click "Settings" in the sidebar
+58. Navigate to "Security" tab
+59. Click "Sign Out from all devices" button
+60. 
+61. **Expected Results**:
+62. - Redirected to auth screen
+63. - Cannot access dashboard directly
+64. - Session cleared (localStorage `am_tk` removed)
 
 ### Test Case 1.4: Team Member Management
 **Objective**: Verify responsible person data is saved correctly

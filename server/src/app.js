@@ -154,7 +154,8 @@ app.use(helmet({
             "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
             "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
             "img-src": ["'self'", "data:", "https://*.googleusercontent.com", "https://*.firebaseapp.com"],
-            "connect-src": ["'self'", "https://*.googleapis.com", "https://*.firebaseapp.com", "/api"]
+            "connect-src": ["'self'", "http://localhost:3001", "http://127.0.0.1:3001", "https://*.googleapis.com", "https://*.firebaseapp.com"],
+            "script-src-attr": ["'unsafe-inline'"]
         },
     },
 }));
@@ -178,6 +179,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 app.use(express.json({ limit: '5mb' }));
+
 app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         console.error('❌ Malformed JSON Request:', err.message);
